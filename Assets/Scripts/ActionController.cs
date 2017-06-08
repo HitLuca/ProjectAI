@@ -5,9 +5,12 @@ using System.Linq;
 using UnityEngine.UI;
 
 public class ActionController : MonoBehaviour {
+	public bool usingVR;
+
     WorldController WorldControllerScript;
 	Camera camera;
 	Canvas canvas;
+
 	public GameObject[] cubes;
 	int activeCubeIndex = 0;
 	GameObject activeCube;
@@ -15,22 +18,25 @@ public class ActionController : MonoBehaviour {
     void Start()
     {
         WorldControllerScript = GameObject.Find("WorldController").GetComponent<WorldController>();
-		camera = transform.Find ("OVRCameraRig/TrackingSpace/CenterEyeAnchor").GetComponent<Camera>();
-		canvas = camera.transform.Find("Canvas").GetComponent<Canvas>();
+		if (usingVR) {
+			camera = FindChild (this.transform, "CenterEyeAnchor").GetComponent<Camera> ();
+		} else {
+			camera = FindChild (this.transform, "FirstPersonCharacter").GetComponent<Camera> ();
+		}
+		canvas = FindChild(camera.transform, "Canvas").GetComponent<Canvas>();
 		activeCube = cubes [0];
 		SetCanvasActiveCube (0);
     }
     void Update()
     {
 		if (Input.GetMouseButtonDown (0) || OVRInput.GetDown(OVRInput.Button.Three)) {
-			Debug.Log ("Click");
 			RaycastHit hit;
-			GameObject centerAnchor = GameObject.Find ("CenterEyeAnchor");
-			Vector3 forward = centerAnchor.transform.TransformDirection (Vector3.forward);
+			Vector3 forward = camera.transform.TransformDirection (Vector3.forward);
 
-			if (Physics.Raycast (centerAnchor.transform.position, forward, out hit)) {
+			if (Physics.Raycast (camera.transform.position, forward, out hit)) {
 				Transform objectHit = hit.transform;
 				if (isCubeSide (objectHit)) {
+					UpdateScore (objectHit.parent.name);
 					WorldControllerScript.DestroyObject (objectHit.parent.gameObject);
 				} else {
 					Debug.Log ("Not deletable!");
@@ -39,19 +45,21 @@ public class ActionController : MonoBehaviour {
 		}
 		if (Input.GetMouseButtonDown (1) || OVRInput.GetDown(OVRInput.Button.Two)) {
 			RaycastHit hit;
-			GameObject centerAnchor = GameObject.Find ("CenterEyeAnchor");
-			Vector3 forward = centerAnchor.transform.TransformDirection (Vector3.forward);
+			Vector3 forward = camera.transform.TransformDirection (Vector3.forward);
 
-			if (Physics.Raycast (centerAnchor.transform.position, forward, out hit)) {
+			if (Physics.Raycast (camera.transform.position, forward, out hit)) {
 				Transform objectHit = hit.transform;
 				if (isCubeSide (objectHit)) {
 					Vector3 newCoordinates = CalculateNewCoordinates (objectHit.parent.transform.position, objectHit.gameObject.name);
+					WorldControllerScript.PlaceObject (activeCube, newCoordinates);
+				} else {
+					Vector3 newCoordinates = CalculateWorldCoordinates (hit.point);
 					WorldControllerScript.PlaceObject (activeCube, newCoordinates);
 				}
 			}
 		}
 
-		if (OVRInput.GetDown(OVRInput.Button.SecondaryIndexTrigger)) {
+		if (Input.GetKeyDown("1") || OVRInput.GetDown(OVRInput.Button.SecondaryIndexTrigger)) {
 			LoopActiveCube ();
 		}
     }
@@ -121,5 +129,42 @@ public class ActionController : MonoBehaviour {
 		activeCubeIndex = (activeCubeIndex + 1) % cubes.Length;
 		activeCube = cubes [activeCubeIndex];
 		SetCanvasActiveCube (activeCubeIndex);
+	}
+
+	Transform FindChild(Transform parent, string name)
+	{
+		var result = parent.Find(name);
+		if (result != null)
+			return result;
+		foreach(Transform child in parent)
+		{
+			result = FindChild(child, name);
+			if (result != null)
+				return result;
+		}
+		return null;
+	}
+
+	Vector3  CalculateWorldCoordinates (Vector3 worldCoordinates) {
+		return new Vector3 (Mathf.Round (worldCoordinates.x), Mathf.Round (worldCoordinates.y), Mathf.Round (worldCoordinates.z));
+	}
+
+	void UpdateScore(string name) {
+		int score = GetScore ();
+
+		if (name.Contains ("DirtCube")) {
+			score += 1;
+		} else if (name.Contains ("GrassCube")) {
+			score += 5;
+		} else if (name.Contains ("StoneCube")) {
+			score += 10;
+		}
+		Text scoreText = canvas.transform.Find ("ScoreValueText").GetComponent<Text> ();
+		scoreText.text = score.ToString();
+	}
+
+	int GetScore() {
+		Text scoreText = canvas.transform.Find ("ScoreValueText").GetComponent<Text> ();
+		return int.Parse (scoreText.text);
 	}
 }
