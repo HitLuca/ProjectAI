@@ -2,52 +2,58 @@
 using System.Collections.Generic;
 using UnityEngine;
 using System.Linq;
+using UnityEngine.UI;
 
 public class ActionController : MonoBehaviour {
-    public Camera camera;
-
     WorldController WorldControllerScript;
+	Camera camera;
+	Canvas canvas;
+	public GameObject[] cubes;
+	int activeCubeIndex = 0;
+	GameObject activeCube;
 
     void Start()
     {
         WorldControllerScript = GameObject.Find("WorldController").GetComponent<WorldController>();
+		camera = transform.Find ("OVRCameraRig/TrackingSpace/CenterEyeAnchor").GetComponent<Camera>();
+		canvas = camera.transform.Find("Canvas").GetComponent<Canvas>();
+		activeCube = cubes [0];
+		SetCanvasActiveCube (0);
     }
     void Update()
     {
-        if (Input.GetMouseButtonDown(0))
-        {
-            RaycastHit hit;
-            Ray ray = camera.ScreenPointToRay(new Vector2(Screen.width /2, Screen.height/2));
+		if (Input.GetMouseButtonDown (0) || OVRInput.GetDown(OVRInput.Button.Three)) {
+			Debug.Log ("Click");
+			RaycastHit hit;
+			GameObject centerAnchor = GameObject.Find ("CenterEyeAnchor");
+			Vector3 forward = centerAnchor.transform.TransformDirection (Vector3.forward);
 
-            if (Physics.Raycast(ray, out hit))
-            {
-                Transform objectHit = hit.transform;
-                if (isCubeSide(objectHit))
-                {
-                    WorldControllerScript.DestroyObject(objectHit.parent.gameObject);
-                }
-                else
-                {
-                    Debug.Log("Not deletable!");
-                }
-            }
-        }
-        if (Input.GetMouseButtonDown(1))
-        {
-            RaycastHit hit;
-            Ray ray = camera.ScreenPointToRay(Input.mousePosition);
+			if (Physics.Raycast (centerAnchor.transform.position, forward, out hit)) {
+				Transform objectHit = hit.transform;
+				if (isCubeSide (objectHit)) {
+					WorldControllerScript.DestroyObject (objectHit.parent.gameObject);
+				} else {
+					Debug.Log ("Not deletable!");
+				}
+			}
+		}
+		if (Input.GetMouseButtonDown (1) || OVRInput.GetDown(OVRInput.Button.Two)) {
+			RaycastHit hit;
+			GameObject centerAnchor = GameObject.Find ("CenterEyeAnchor");
+			Vector3 forward = centerAnchor.transform.TransformDirection (Vector3.forward);
 
-            if (Physics.Raycast(ray, out hit))
-            {
-                Transform objectHit = hit.transform;
-                if (isCubeSide(objectHit))
-                {
-                    Vector3 newCoordinates = CalculateNewCoordinates(objectHit.parent.transform.position, objectHit.gameObject.name);
-                    WorldControllerScript.PlaceObject(objectHit.parent.gameObject, newCoordinates);
-                }
-            }
-        }
+			if (Physics.Raycast (centerAnchor.transform.position, forward, out hit)) {
+				Transform objectHit = hit.transform;
+				if (isCubeSide (objectHit)) {
+					Vector3 newCoordinates = CalculateNewCoordinates (objectHit.parent.transform.position, objectHit.gameObject.name);
+					WorldControllerScript.PlaceObject (activeCube, newCoordinates);
+				}
+			}
+		}
 
+		if (OVRInput.GetDown(OVRInput.Button.SecondaryIndexTrigger)) {
+			LoopActiveCube ();
+		}
     }
 
     bool isCubeSide(Transform o)
@@ -101,4 +107,19 @@ public class ActionController : MonoBehaviour {
         }
         return currentPosition + delta;
     }
+
+	void SetCanvasActiveCube (int index) {
+		canvas.transform.Find("ActiveCubes").transform.GetChild(index).GetComponent<Outline> ().enabled = true;
+	}
+
+	void SetCanvasUnactiveCube (int index) {
+		canvas.transform.Find("ActiveCubes").transform.GetChild(index).GetComponent<Outline> ().enabled = false;
+	}
+
+	void LoopActiveCube () {
+		SetCanvasUnactiveCube (activeCubeIndex);
+		activeCubeIndex = (activeCubeIndex + 1) % cubes.Length;
+		activeCube = cubes [activeCubeIndex];
+		SetCanvasActiveCube (activeCubeIndex);
+	}
 }
