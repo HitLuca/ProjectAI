@@ -1,0 +1,9 @@
+walk W
+jump Spacebar
+run Shift
+strafe_left A
+strafe_right D
+turn_left Q
+turn_right E
+take LeftMouseButton
+drop RightMouseButton
