@@ -167,4 +167,10 @@ public class ActionController : MonoBehaviour {
 		Text scoreText = canvas.transform.Find ("ScoreValueText").GetComponent<Text> ();
 		return int.Parse (scoreText.text);
 	}
+
+    public void UpdateText(string text)
+    {
+        Text requestText = canvas.transform.Find("RequestText").GetComponent<Text>();
+        requestText.text = text;
+    }
 }
