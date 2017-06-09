@@ -29,13 +29,14 @@ public class ActionController : MonoBehaviour {
     }
     void Update()
     {
-		if (Input.GetMouseButtonDown (0) || OVRInput.GetDown(OVRInput.Button.Three)) {
+		if (Input.GetButtonDown("PlaceBlock")) {
 			RaycastHit hit;
 			Vector3 forward = camera.transform.TransformDirection (Vector3.forward);
 
 			if (Physics.Raycast (camera.transform.position, forward, out hit)) {
 				Transform objectHit = hit.transform;
-				if (isCubeSide (objectHit)) {
+
+                if (isCubeSide (objectHit)) {
 					UpdateScore (objectHit.parent.name);
 					WorldControllerScript.DestroyObject (objectHit.parent.gameObject);
 				} else {
@@ -43,23 +44,24 @@ public class ActionController : MonoBehaviour {
 				}
 			}
 		}
-		if (Input.GetMouseButtonDown (1) || OVRInput.GetDown(OVRInput.Button.Two)) {
+		if (Input.GetButtonDown("DestroyBlock")) {
 			RaycastHit hit;
-			Vector3 forward = camera.transform.TransformDirection (Vector3.forward);
+			Vector3 forward = camera.transform.TransformDirection (Vector3.forward * 10);
 
 			if (Physics.Raycast (camera.transform.position, forward, out hit)) {
 				Transform objectHit = hit.transform;
-				if (isCubeSide (objectHit)) {
+
+                if (isCubeSide (objectHit)) {
+                    Debug.Log("hitted cube side");
 					Vector3 newCoordinates = CalculateNewCoordinates (objectHit.parent.transform.position, objectHit.gameObject.name);
 					WorldControllerScript.PlaceObject (activeCube, newCoordinates);
 				} else {
 					Vector3 newCoordinates = CalculateWorldCoordinates (hit.point);
-					WorldControllerScript.PlaceObject (activeCube, newCoordinates);
-				}
+                    WorldControllerScript.PlaceObject(activeCube, newCoordinates);
+                }
 			}
 		}
-
-		if (Input.GetKeyDown("1") || OVRInput.GetDown(OVRInput.Button.SecondaryIndexTrigger)) {
+		if (Input.GetButtonDown("CycleBlocks")) {
 			LoopActiveCube ();
 		}
     }
@@ -146,7 +148,7 @@ public class ActionController : MonoBehaviour {
 	}
 
 	Vector3  CalculateWorldCoordinates (Vector3 worldCoordinates) {
-		return new Vector3 (Mathf.Round (worldCoordinates.x), Mathf.Round (worldCoordinates.y), Mathf.Round (worldCoordinates.z));
+		return new Vector3 (Mathf.Round (worldCoordinates.x + 0.5f), 0, Mathf.Round (worldCoordinates.z));
 	}
 
 	void UpdateScore(string name) {
