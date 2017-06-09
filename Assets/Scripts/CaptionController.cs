@@ -21,8 +21,8 @@ public class CaptionController : MonoBehaviour
     ActionController PlayerScript;
 
     public bool VREnabled;
-    public string filePathActions = "D:\\Work\\Unity\\ProjectAI\\Files\\actions.txt";
-    public string filePathBindings = "D:\\Work\\Unity\\ProjectAI\\Files\\bindings.txt";
+    public string filePathActions;
+    public string filePathBindings;
     ArrayList actions;
     int currentActionIndex = 0;
     Dictionary<string, string> keyBindings =
@@ -187,19 +187,19 @@ public class CaptionController : MonoBehaviour
 
     private ArrayList Load(string fileName)
     {
+        FileInfo file = new FileInfo(fileName);
+
         ArrayList parsed = new ArrayList();
         // Handle any problems that might arise when reading the text
         try
         {
             string line;
-            StreamReader theReader = new StreamReader(fileName, Encoding.Default);
-
+            StreamReader theReader = new StreamReader(file.FullName);
             using (theReader)
             {
                 do
                 {
                     line = theReader.ReadLine();
-
                     if (line != null)
                     {
                         string[] entries = line.Split(' ');
