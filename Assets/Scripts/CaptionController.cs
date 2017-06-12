@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -16,6 +17,7 @@ public class CaptionController : MonoBehaviour
 //PUBLIC PARAMETERS
     public string filePathActions;
     public string filePathBindings;
+    public string filePathOutput;
     public int totalTime;
 
 //ADDITIONAL PARAMETERS
@@ -29,8 +31,6 @@ public class CaptionController : MonoBehaviour
 
     float timeLeftWaiting = -1;
     bool timerTriggerWaiting = false;
-
-    ActionController playerScript;
     
     ActionSequence actionSequence;
     WorldController worldController;
@@ -38,6 +38,24 @@ public class CaptionController : MonoBehaviour
             new Dictionary<string, string[]>();
     bool shouldReleaseKey = false;
     bool actionFinished = false;
+
+    class DataEntry {
+        public string actionName;
+        public long messageTimestamp;
+        public long downTimestamp;
+        public long upTimestamp;
+
+        public DataEntry()
+        {
+            actionName = "";
+        }
+
+        public override string ToString() {
+            return actionName + " " + messageTimestamp.ToString() + " " + downTimestamp.ToString() + " " + upTimestamp.ToString() + "\n";
+        }
+    }
+
+    DataEntry currentEntry = new DataEntry();
 
     void Start()
     {
@@ -47,15 +65,6 @@ public class CaptionController : MonoBehaviour
         actionSequence = new ActionSequence(totalTime, minDuration, maxDuration, keyBindings.Keys.ToArray());
         worldController = GameObject.Find("WorldController").GetComponent<WorldController>();
         
-
-        if (worldController.UsingVR())
-        {
-            playerScript = GameObject.Find("OVRPlayerController").GetComponent<ActionController>();
-        }
-        else
-        {
-            playerScript = GameObject.Find("FPSController").GetComponent<ActionController>();
-        }
     }
 
     // Update is called once per frame
@@ -82,6 +91,12 @@ public class CaptionController : MonoBehaviour
 
         message = message.Replace("%2", binding);
 
+        if (!currentEntry.actionName.Equals(action.name))
+        {
+            currentEntry.actionName = action.name;
+            currentEntry.messageTimestamp = GetCurrentUnixTimestampMillis();
+        }
+
         if (timerTriggerRelease)
             message += "..." + (System.Math.Round(timeLeftRelease)).ToString();
 
@@ -97,11 +112,15 @@ public class CaptionController : MonoBehaviour
             if (Input.GetButtonDown(action.name))
             {
                 //StopTimer();
-                if(!timerTriggerRelease)
+                if (!timerTriggerRelease)
+                {
+                    currentEntry.downTimestamp = GetCurrentUnixTimestampMillis();
                     StartReleaseTimer(actionTime);
+                }
             }
             else if (Input.GetButtonUp(action.name))
             {
+                currentEntry.upTimestamp = GetCurrentUnixTimestampMillis();
                 StopReleaseTimer();
                 TimerReleaseDone();
                 shouldReleaseKey = false;
@@ -121,6 +140,8 @@ public class CaptionController : MonoBehaviour
                     StartWaitingTimer(action.duration);
                     message = "Wait..." + (System.Math.Round(timeLeftWaiting)).ToString();
                     actionFinished = true;
+                    WriteData(filePathOutput, currentEntry.ToString());
+                    currentEntry = new DataEntry();
                 }
 
                 if (actionSequence.isLast())
@@ -130,7 +151,8 @@ public class CaptionController : MonoBehaviour
                 }
             }
         }
-        
+
+
         worldController.UpdatePlayerRequestText(message);
         
     }
@@ -286,9 +308,38 @@ public class CaptionController : MonoBehaviour
     //DATA WRITING
     //***************************
 
+    
 
-    private void WriteData()
+    private void WriteData(string filePath, string data)
     {
 
+        // Write the string to a file.
+        System.IO.StreamWriter file = new System.IO.StreamWriter(filePath, true);
+        file.WriteLine(data);
+
+        file.Close();
+    }
+
+    private static readonly DateTime UnixEpoch =
+    new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+
+    public static long GetCurrentUnixTimestampMillis()
+    {
+        return (long)(DateTime.UtcNow - UnixEpoch).TotalMilliseconds;
+    }
+
+    public static DateTime DateTimeFromUnixTimestampMillis(long millis)
+    {
+        return UnixEpoch.AddMilliseconds(millis);
+    }
+
+    public static long GetCurrentUnixTimestampSeconds()
+    {
+        return (long)(DateTime.UtcNow - UnixEpoch).TotalSeconds;
+    }
+
+    public static DateTime DateTimeFromUnixTimestampSeconds(long seconds)
+    {
+        return UnixEpoch.AddSeconds(seconds);
     }
 }
