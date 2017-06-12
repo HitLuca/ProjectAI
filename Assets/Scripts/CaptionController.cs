@@ -76,7 +76,7 @@ public class CaptionController : MonoBehaviour
         }
 
 
-        PlayerScript.UpdateText(message);
+        PlayerScript.UpdateRequestText(message);
 
         Debug.Log(message);
     }

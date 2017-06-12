@@ -95,12 +95,15 @@ public class OVRPlayerController : MonoBehaviour
 	private float SimulationRate = 60f;
 	private float buttonRotation = 0f;
 
-	void Start()
+    private bool crouch = false;
+    private bool crouching = false;
+
+    void Start()
 	{
 		// Add eye-depth as a camera offset from the player controller
-		var p = CameraRig.transform.localPosition;
+		/*var p = CameraRig.transform.localPosition;
 		p.z = OVRManager.profile.eyeDepth;
-		CameraRig.transform.localPosition = p;
+		CameraRig.transform.localPosition = p;*/
 	}
 
 	void Awake()
@@ -147,11 +150,11 @@ public class OVRPlayerController : MonoBehaviour
 	void Update()
 	{
 		//Use keys to ratchet rotation
-		if (Input.GetKeyDown(KeyCode.Q))
+		/*if (Input.GetKeyDown(KeyCode.Q))
 			buttonRotation -= RotationRatchet;
 
 		if (Input.GetKeyDown(KeyCode.E))
-			buttonRotation += RotationRatchet;
+			buttonRotation += RotationRatchet;*/
 	}
 
 	protected virtual void UpdateController()
@@ -169,7 +172,7 @@ public class OVRPlayerController : MonoBehaviour
 				};
 			}
 
-			var p = CameraRig.transform.localPosition;
+			/*var p = CameraRig.transform.localPosition;
 			if (OVRManager.instance.trackingOriginType == OVRManager.TrackingOrigin.EyeLevel)
 			{
 				p.y = OVRManager.profile.eyeHeight - (0.5f * Controller.height) + Controller.center.y;
@@ -178,7 +181,7 @@ public class OVRPlayerController : MonoBehaviour
 			{
 				p.y = - (0.5f * Controller.height) + Controller.center.y;
 			}
-			CameraRig.transform.localPosition = p;
+			CameraRig.transform.localPosition = p;*/
 		}
 		else if (InitialPose != null)
 		{
@@ -232,33 +235,31 @@ public class OVRPlayerController : MonoBehaviour
 	{
 		if (HaltUpdateMovement)
 			return;
-
-		bool moveForward = Input.GetKey(KeyCode.W) || Input.GetKey(KeyCode.UpArrow);
-		bool moveLeft = Input.GetKey(KeyCode.A) || Input.GetKey(KeyCode.LeftArrow);
-		bool moveRight = Input.GetKey(KeyCode.D) || Input.GetKey(KeyCode.RightArrow);
-		bool moveBack = Input.GetKey(KeyCode.S) || Input.GetKey(KeyCode.DownArrow);
+        
+		bool moveForward = Input.GetAxis("Vertical") == 1;
+		bool moveLeft = Input.GetAxis("Horizontal") == -1;
+		bool moveRight = Input.GetAxis("Horizontal") == 1;
+		bool moveBack = Input.GetAxis("Vertical") == -1;
 
 		bool dpad_move = false;
 
-		if (OVRInput.GetDown(OVRInput.Button.One))
+		if (Input.GetButtonDown("Jump"))
 		{
 			Jump ();
 		}
 
-/*		if (OVRInput.GetDown(OVRInput.Button.Four))
-		{
-			Debug.Log ("Crouching");
-			Crouch ();
-		}*/
+        CheckCrouching();
 
-		if (OVRInput.Get(OVRInput.Button.DpadUp))
+        // Not removed just to be sure
+		if (Input.GetAxis("Vertical") == 1)
 		{
 			moveForward = true;
 			dpad_move   = true;
 
 		}
 
-		if (OVRInput.Get(OVRInput.Button.DpadDown))
+        // Not removed just to be sure
+        if (Input.GetAxis("Vertical") == -1)
 		{
 			moveBack  = true;
 			dpad_move = true;
@@ -270,7 +271,7 @@ public class OVRPlayerController : MonoBehaviour
 			 (moveBack && moveLeft)    || (moveBack && moveRight) )
 			MoveScale = 0.70710678f;
 
-		// No positional movement if we are in the air
+		// Removed to allow jump-move
 		//if (!Controller.isGrounded)
 		//	MoveScale = 0.0f;
 
@@ -279,8 +280,8 @@ public class OVRPlayerController : MonoBehaviour
 		// Compute this for key movement
 		float moveInfluence = Acceleration * 0.1f * MoveScale * MoveScaleMultiplier;
 
-		// Run!
-		if (dpad_move || Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift))
+        // Run
+		if (Input.GetAxis("Run") == 1)
 			moveInfluence *= 2.0f;
 
 		Quaternion ort = transform.rotation;
@@ -384,6 +385,31 @@ public class OVRPlayerController : MonoBehaviour
 
 		return true;
 	}
+
+    void CheckCrouching()
+    {
+        if (Input.GetAxis("Crouch") == 1)
+        {
+            if (!crouch && !crouching)
+            {
+                Vector3 cameraPosition = CameraRig.transform.localPosition;
+                cameraPosition.y = 0.5f;
+                CameraRig.transform.localPosition = cameraPosition;
+                crouch = true;
+            }
+            else if (crouch && !crouching)
+            {
+                Vector3 cameraPosition = CameraRig.transform.localPosition;
+                cameraPosition.y = 0.8f;
+                CameraRig.transform.localPosition = cameraPosition;
+                crouch = false;
+            }
+            crouching = true;
+        } else
+        {
+            crouching = false;
+        }
+    }
 
 
 	/*public void Crouch()

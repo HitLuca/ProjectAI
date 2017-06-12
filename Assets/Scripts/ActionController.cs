@@ -12,11 +12,13 @@ public class ActionController : MonoBehaviour {
 	Canvas canvas;
 
 	public GameObject[] cubes;
-	int activeCubeIndex = 0;
+    CanvasData canvasData;
+    
 	GameObject activeCube;
 
     void Start()
     {
+        Debug.Log("Start method called for vr=" + usingVR);
         WorldControllerScript = GameObject.Find("WorldController").GetComponent<WorldController>();
 		if (usingVR) {
 			camera = FindChild (this.transform, "CenterEyeAnchor").GetComponent<Camera> ();
@@ -24,49 +26,37 @@ public class ActionController : MonoBehaviour {
 			camera = FindChild (this.transform, "FirstPersonCharacter").GetComponent<Camera> ();
 		}
 		canvas = FindChild(camera.transform, "Canvas").GetComponent<Canvas>();
-		activeCube = cubes [0];
-		SetCanvasActiveCube (0);
+		SetCanvasActiveCube (canvasData.activeCubeIndex);
+        activeCube = cubes[canvasData.activeCubeIndex];
+        UpdateScore(canvasData.score);
     }
     void Update()
     {
 		if (Input.GetButtonDown("PlaceBlock")) {
-			RaycastHit hit;
-			Vector3 forward = camera.transform.TransformDirection (Vector3.forward);
-
-			if (Physics.Raycast (camera.transform.position, forward, out hit)) {
-				Transform objectHit = hit.transform;
-
-                if (isCubeSide (objectHit)) {
-					UpdateScore (objectHit.parent.name);
-					WorldControllerScript.DestroyObject (objectHit.parent.gameObject);
-				} else {
-					Debug.Log ("Not deletable!");
-				}
-			}
+            PlaceBlock();
 		}
 		if (Input.GetButtonDown("DestroyBlock")) {
-			RaycastHit hit;
-			Vector3 forward = camera.transform.TransformDirection (Vector3.forward * 10);
-
-			if (Physics.Raycast (camera.transform.position, forward, out hit)) {
-				Transform objectHit = hit.transform;
-
-                if (isCubeSide (objectHit)) {
-                    Debug.Log("hitted cube side");
-					Vector3 newCoordinates = CalculateNewCoordinates (objectHit.parent.transform.position, objectHit.gameObject.name);
-					WorldControllerScript.PlaceObject (activeCube, newCoordinates);
-				} else {
-					Vector3 newCoordinates = CalculateWorldCoordinates (hit.point);
-                    WorldControllerScript.PlaceObject(activeCube, newCoordinates);
-                }
-			}
+            DestroyBlock();
 		}
 		if (Input.GetButtonDown("CycleBlocks")) {
 			LoopActiveCube ();
 		}
     }
 
-    bool isCubeSide(Transform o)
+    private void OnEnable()
+    {
+        UpdateScore(canvasData.score);
+        SetCanvasActiveCube(canvasData.activeCubeIndex);
+        for (int i=0; i<cubes.Length; i++)
+        {
+            if(i != canvasData.activeCubeIndex)
+            {
+                SetCanvasInactiveCube(i);
+            }
+        }
+    }
+
+    bool IsCubeSide(Transform o)
     {
         string objectName = o.gameObject.name;
 
@@ -122,15 +112,15 @@ public class ActionController : MonoBehaviour {
 		canvas.transform.Find("ActiveCubes").transform.GetChild(index).GetComponent<Outline> ().enabled = true;
 	}
 
-	void SetCanvasUnactiveCube (int index) {
+	void SetCanvasInactiveCube(int index) {
 		canvas.transform.Find("ActiveCubes").transform.GetChild(index).GetComponent<Outline> ().enabled = false;
 	}
 
 	void LoopActiveCube () {
-		SetCanvasUnactiveCube (activeCubeIndex);
-		activeCubeIndex = (activeCubeIndex + 1) % cubes.Length;
-		activeCube = cubes [activeCubeIndex];
-		SetCanvasActiveCube (activeCubeIndex);
+        SetCanvasInactiveCube(canvasData.activeCubeIndex);
+        canvasData.activeCubeIndex = (canvasData.activeCubeIndex + 1) % cubes.Length;
+		activeCube = cubes [canvasData.activeCubeIndex];
+		SetCanvasActiveCube (canvasData.activeCubeIndex);
 	}
 
 	Transform FindChild(Transform parent, string name)
@@ -151,28 +141,89 @@ public class ActionController : MonoBehaviour {
 		return new Vector3 (Mathf.Round (worldCoordinates.x + 0.5f), 0, Mathf.Round (worldCoordinates.z));
 	}
 
-	void UpdateScore(string name) {
-		int score = GetScore ();
+    int  CalculateScore(string name)
+    {
+        int score = GetScore();
 
-		if (name.Contains ("DirtCube")) {
-			score += 1;
-		} else if (name.Contains ("GrassCube")) {
-			score += 5;
-		} else if (name.Contains ("StoneCube")) {
-			score += 10;
-		}
-		Text scoreText = canvas.transform.Find ("ScoreValueText").GetComponent<Text> ();
-		scoreText.text = score.ToString();
+        if (name.Contains("DirtCube"))
+        {
+            score += 1;
+        }
+        else if (name.Contains("GrassCube"))
+        {
+            score += 5;
+        }
+        else if (name.Contains("StoneCube"))
+        {
+            score += 10;
+        }
+        return score;
+    }
+
+    void PlaceBlock()
+    {
+        RaycastHit hit;
+        Vector3 forward = camera.transform.TransformDirection(Vector3.forward);
+
+        if (Physics.Raycast(camera.transform.position, forward, out hit))
+        {
+            Transform objectHit = hit.transform;
+
+            if (IsCubeSide(objectHit))
+            {
+                int score = CalculateScore(objectHit.parent.name);
+                WorldControllerScript.UpdatePlayerScore(score);
+
+                WorldControllerScript.DestroyObject(objectHit.parent.gameObject);
+            }
+            else
+            {
+                Debug.Log("Not deletable!");
+            }
+        }
+    }
+
+    void DestroyBlock()
+    {
+        RaycastHit hit;
+        Vector3 forward = camera.transform.TransformDirection(Vector3.forward * 10);
+
+        if (Physics.Raycast(camera.transform.position, forward, out hit))
+        {
+            Transform objectHit = hit.transform;
+
+            if (IsCubeSide(objectHit))
+            {
+                Vector3 newCoordinates = CalculateNewCoordinates(objectHit.parent.transform.position, objectHit.gameObject.name);
+                WorldControllerScript.PlaceObject(activeCube, newCoordinates);
+            }
+            else
+            {
+                Vector3 newCoordinates = CalculateWorldCoordinates(hit.point);
+                WorldControllerScript.PlaceObject(activeCube, newCoordinates);
+            }
+        }
+    }
+
+    int GetScore() {
+        return canvasData.score;
 	}
 
-	int GetScore() {
-		Text scoreText = canvas.transform.Find ("ScoreValueText").GetComponent<Text> ();
-		return int.Parse (scoreText.text);
-	}
+    public void UpdateScore(int score)
+    {
+        canvasData.score = score;
+        Text scoreText = canvas.transform.Find("ScoreValueText").GetComponent<Text>();
+        scoreText.text = canvasData.score.ToString();
+    }
 
-    public void UpdateText(string text)
+    public void UpdateRequestText(string text)
     {
         Text requestText = canvas.transform.Find("RequestText").GetComponent<Text>();
         requestText.text = text;
+    }
+
+    public void SetCanvasData(CanvasData canvasData)
+    {
+        this.canvasData = canvasData;
     }
 }
