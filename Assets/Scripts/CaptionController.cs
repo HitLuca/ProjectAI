@@ -1,163 +1,220 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text;
 using UnityEngine;
 using UnityEngine.UI;
 
 public class CaptionController : MonoBehaviour
 {
-    const string MESSAGE = "Please  <b>%1</b>  by  pressing  <b>%2</b>.";
+    const string MSG_INSTRUCTION = "Please  <b>%1</b>  by  pressing  <b>%2</b>.";
+    const string MSG_RELEASE_KEY = "Please  release  the  key.";
+    const string MSG_WAIT = "Wait...";
+    const string MSG_FINISH = "Experiment  complete";
 
-    const string ACTION_NONE = "none";
-    const string ACTION_WALK = "walk";
-
-    float action_time = 3;
-
-    float timeLeft = -1;
-    bool timerTrigger = false;
-    string currentAction = ACTION_NONE;
-
-    ActionController PlayerScript;
-
-    public bool VREnabled;
+//PUBLIC PARAMETERS
     public string filePathActions;
     public string filePathBindings;
-    ArrayList actions;
-    int currentActionIndex = 0;
-    Dictionary<string, string> keyBindings =
-            new Dictionary<string, string>();
+    public int totalTime;
 
-    // Use this for initialization3
+//ADDITIONAL PARAMETERS
+    int minDuration = 2;
+    int maxDuration = 5;
+    float actionTime = 3;
+
+//INTERNAL VARIABLES
+    float timeLeftRelease = -1;
+    bool timerTriggerRelease = false;
+
+    float timeLeftWaiting = -1;
+    bool timerTriggerWaiting = false;
+
+    ActionController playerScript;
+    
+    ActionSequence actionSequence;
+    WorldController worldController;
+    Dictionary<string, string[]> keyBindings =
+            new Dictionary<string, string[]>();
+    bool shouldReleaseKey = false;
+    bool actionFinished = false;
+
     void Start()
     {
-        actions = LoadActions(filePathActions);
+        //actions = LoadActions(filePathActions);
         keyBindings = LoadBindings(filePathBindings);
+        
+        actionSequence = new ActionSequence(totalTime, minDuration, maxDuration, keyBindings.Keys.ToArray());
+        worldController = GameObject.Find("WorldController").GetComponent<WorldController>();
+        
 
-        if (VREnabled)
+        if (worldController.UsingVR())
         {
-            PlayerScript = GameObject.Find("OVRPlayerController").GetComponent<ActionController>();
+            playerScript = GameObject.Find("OVRPlayerController").GetComponent<ActionController>();
         }
         else
         {
-            PlayerScript = GameObject.Find("FPSController").GetComponent<ActionController>();
+            playerScript = GameObject.Find("FPSController").GetComponent<ActionController>();
         }
     }
 
     // Update is called once per frame
     void Update()
     {
+        UpdateReleaseTimer();
+        UpdateWaitingTimer();
 
-        UpdateTimer();
-        UpdateMessage();
-
+        if (!actionSequence.isFinished())
+            UpdateMessage();
     }
 
     private void UpdateMessage()
     {
+        ActionSequence.Action action = actionSequence.get();
+        string action_msg = action.name.Replace('_', ' ');
+        string message = MSG_INSTRUCTION.Replace("%1", action_msg);
 
-        string action = actions[currentActionIndex].ToString();
-        string action_msg = action.Replace('_', ' ');
-        string message = MESSAGE.Replace("%1", action_msg);
-        message = message.Replace("%2", keyBindings[action]);
+        string binding = "";
+        if (!worldController.UsingVR())
+            binding = keyBindings[action.name][0].Replace('_', ' ');
+        else
+            binding = keyBindings[action.name][1].Replace('_', ' ');
 
-        if (timerTrigger)
-            message = "Hold on..." + (System.Math.Round(timeLeft)).ToString();
+        message = message.Replace("%2", binding);
 
-        //string keyCode = GetKeyCode(entry[1]);
-        if (Input.GetKeyDown(GetKeyCode(keyBindings[action])))
+        if (timerTriggerRelease)
+            message += "..." + (System.Math.Round(timeLeftRelease)).ToString();
+
+        if (timerTriggerWaiting)
+            message = MSG_WAIT + "  " + (System.Math.Round(timeLeftWaiting)).ToString();
+        else if (actionSequence.isFinished())
         {
-            StopTimer();
-            StartTimer(action_time);
+            message = MSG_FINISH;
         }
-        else if (Input.GetKeyUp(GetKeyCode(keyBindings[action])))
+        else
         {
-            StopTimer();
+            //string keyCode = GetKeyCode(entry[1]);
+            if (Input.GetButtonDown(action.name))
+            {
+                //StopTimer();
+                if(!timerTriggerRelease)
+                    StartReleaseTimer(actionTime);
+            }
+            else if (Input.GetButtonUp(action.name))
+            {
+                StopReleaseTimer();
+                TimerReleaseDone();
+                shouldReleaseKey = false;
+            }
+            else if (Input.GetButton(action.name))
+            {
+                if (!timerTriggerRelease)
+                {
+                    shouldReleaseKey = true;
+                    message = MSG_RELEASE_KEY;
+                }
+            }
+            else {
+
+                if (!actionSequence.isLast() && !timerTriggerRelease && !shouldReleaseKey && actionFinished)
+                {
+                    StartWaitingTimer(action.duration);
+                    message = "Wait..." + (System.Math.Round(timeLeftWaiting)).ToString();
+                    actionFinished = true;
+                }
+
+                if (actionSequence.isLast())
+                {
+                    actionSequence.advance();
+                    message = "Experiment complete";
+                }
+            }
         }
-
-
-        PlayerScript.UpdateRequestText(message);
-
-        Debug.Log(message);
+        
+        worldController.UpdatePlayerRequestText(message);
+        
     }
 
+    //private GetButtonDown(string name)
+    //{
+    //    Input.GetButtonDown(name);
+    //}
+    
 
-
-    private KeyCode GetKeyCode(string keyStr)
-    {
-        KeyCode keyCode = KeyCode.W;
-        switch (keyStr)
-        {
-            case "W":
-                keyCode = KeyCode.W;
-                break;
-            case "A":
-                keyCode = KeyCode.A;
-                break;
-            case "D":
-                keyCode = KeyCode.D;
-                break;
-            case "Q":
-                keyCode = KeyCode.E;
-                break;
-            case "E":
-                keyCode = KeyCode.E;
-                break;
-            case "Z":
-                keyCode = KeyCode.Z;
-                break;
-            case "Spacebar":
-                keyCode = KeyCode.Space;
-                break;
-        }
-
-        return keyCode;
-    }
 
     //***************************
     //TIMER
     //***************************
 
-
-    private void StartTimer(float time)
+    private void StartReleaseTimer(float time)
     {
-        timeLeft = time;
-        timerTrigger = true;
+        timeLeftRelease = time;
+        timerTriggerRelease = true;
     }
 
-    private void StopTimer()
+    private void StopReleaseTimer()
     {
-        timerTrigger = false;
+        timerTriggerRelease = false;
     }
 
-    private void UpdateTimer()
+    private void UpdateReleaseTimer()
     {
-        if (timerTrigger)
+        if (timerTriggerRelease)
         {
-            timeLeft -= Time.deltaTime;
-            if (timeLeft < 0)
+            timeLeftRelease -= Time.deltaTime;
+            if (timeLeftRelease < 0)
             {
-                timerTrigger = false;
-                TimerDone();
+                timerTriggerRelease = false;
+                TimerReleaseDone();
             }
         }
     }
 
-    private void TimerDone()
+    private void TimerReleaseDone()
     {
-        Debug.Log("Done");
-        currentActionIndex++;
+        actionFinished = true;
+        actionSequence.advance();
     }
 
+
+
+    private void StartWaitingTimer(float time)
+    {
+        timeLeftWaiting = time;
+        timerTriggerWaiting = true;
+    }
+
+    private void StopWaitingTimer()
+    {
+        timerTriggerWaiting = false;
+    }
+
+    private void UpdateWaitingTimer()
+    {
+        if (timerTriggerWaiting)
+        {
+            timeLeftWaiting -= Time.deltaTime;
+            if (timeLeftWaiting < 0)
+            {
+                timerTriggerWaiting = false;
+                TimerWaitingDone();
+            }
+        }
+    }
+
+    private void TimerWaitingDone()
+    {
+        actionFinished = false;
+    }
 
     //***************************
     //ACTION FILE READING
     //***************************
 
-    private Dictionary<string, string> LoadBindings(string fileName)
+    private Dictionary<string, string[]> LoadBindings(string fileName)
     {
         ArrayList parsed = Load(fileName);
-        Dictionary<string, string> messages = new Dictionary<string, string>();
+        Dictionary<string, string[]> bindings = new Dictionary<string, string[]>();
         
         foreach (string[] entry in parsed)
         {
@@ -166,11 +223,14 @@ public class CaptionController : MonoBehaviour
             //entry.RemoveAt(0);
             //String.Join(" ", entry)
 
+            string[] controls = new string[2];
+            controls[0] = entry[1];
+            controls[1] = entry[2];
 
-            messages.Add(action, entry[1]);
+            bindings.Add(action, controls);
         }
 
-        return messages;
+        return bindings;
     }
 
     private ArrayList LoadActions(string fileName)
@@ -215,8 +275,6 @@ public class CaptionController : MonoBehaviour
                 return parsed;
             }
         }
-        // If anything broke in the try block, we throw an exception with information
-        // on what didn't work
         catch (System.Exception e)
         {
             System.Console.WriteLine("{0}\n", e.Message);
