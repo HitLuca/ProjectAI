@@ -12,6 +12,9 @@ public class WorldController : MonoBehaviour {
     bool usingVR;
     public int GuiBlocksNumber;
 
+    bool FPSReady = false;
+    bool VRReady = false;
+
     void Start() {
         usingVR = VRSettings.loadedDeviceName == "Oculus";
         FPSScript = FPSController.GetComponent<ActionController>();
@@ -71,18 +74,18 @@ public class WorldController : MonoBehaviour {
     void EnableFPSController()
     {
         FPSController.transform.position = VRController.transform.position;
-        VRController.SetActive(false);
         FPSController.SetActive(true);
         VRSettings.LoadDeviceByName("None");
+        VRController.SetActive(false);
         usingVR = false;
     }
 
     void EnableVRController()
     {
         VRController.transform.position = FPSController.transform.position;
-        FPSController.SetActive(false);
         VRController.SetActive(true);
         VRSettings.LoadDeviceByName("Oculus");
+        FPSController.SetActive(false);
         usingVR = true;
     }
 
@@ -90,11 +93,17 @@ public class WorldController : MonoBehaviour {
     {
         if (usingVR)
         {
-            VRScript.UpdateScore(score);
+            if (VRReady)
+            {
+                VRScript.UpdateScore(score);
+            }
         }
         else
         {
-            FPSScript.UpdateScore(score);
+            if (FPSReady)
+            {
+                FPSScript.UpdateScore(score);
+            }
         }
     }
 
@@ -102,11 +111,27 @@ public class WorldController : MonoBehaviour {
     {
         if (usingVR)
         {
-            VRScript.UpdateRequestText(text);
+            if (VRReady)
+            {
+                VRScript.UpdateRequestText(text);
+            }
         }
         else
         {
-            FPSScript.UpdateRequestText(text);
+            if (FPSReady)
+            {
+                FPSScript.UpdateRequestText(text);
+            }
         }
+    }
+
+    public void FPSIsReady()
+    {
+        FPSReady = true;
+    }
+
+    public void VRIsReady()
+    {
+        VRReady = true;
     }
 }

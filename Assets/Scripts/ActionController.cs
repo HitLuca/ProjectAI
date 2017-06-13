@@ -16,9 +16,10 @@ public class ActionController : MonoBehaviour {
     
 	GameObject activeCube;
 
+    public bool initialized = false;
+
     void Start()
     {
-        Debug.Log("Start method called for vr=" + usingVR);
         WorldControllerScript = GameObject.Find("WorldController").GetComponent<WorldController>();
 		if (usingVR) {
 			camera = FindChild (this.transform, "CenterEyeAnchor").GetComponent<Camera> ();
@@ -26,10 +27,13 @@ public class ActionController : MonoBehaviour {
 			camera = FindChild (this.transform, "FirstPersonCharacter").GetComponent<Camera> ();
 		}
 		canvas = FindChild(camera.transform, "Canvas").GetComponent<Canvas>();
+        Debug.Log(canvas.name);
 		SetCanvasActiveCube (canvasData.activeCubeIndex);
         activeCube = cubes[canvasData.activeCubeIndex];
         UpdateScore(canvasData.score);
+        initialized = true;
     }
+
     void Update()
     {
 		if (Input.GetButtonDown("PlaceBlock")) {
@@ -45,13 +49,16 @@ public class ActionController : MonoBehaviour {
 
     private void OnEnable()
     {
-        UpdateScore(canvasData.score);
-        SetCanvasActiveCube(canvasData.activeCubeIndex);
-        for (int i=0; i<cubes.Length; i++)
+        if (initialized)
         {
-            if(i != canvasData.activeCubeIndex)
+            UpdateScore(canvasData.score);
+            SetCanvasActiveCube(canvasData.activeCubeIndex);
+            for (int i = 0; i < cubes.Length; i++)
             {
-                SetCanvasInactiveCube(i);
+                if (i != canvasData.activeCubeIndex)
+                {
+                    SetCanvasInactiveCube(i);
+                }
             }
         }
     }
