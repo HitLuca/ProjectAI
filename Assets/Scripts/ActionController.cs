@@ -16,7 +16,7 @@ public class ActionController : MonoBehaviour {
     
 	GameObject activeCube;
 
-    public bool initialized = false;
+    bool initialized = false;
 
     void Start()
     {
@@ -27,11 +27,17 @@ public class ActionController : MonoBehaviour {
 			camera = FindChild (this.transform, "FirstPersonCharacter").GetComponent<Camera> ();
 		}
 		canvas = FindChild(camera.transform, "Canvas").GetComponent<Canvas>();
-        Debug.Log(canvas.name);
 		SetCanvasActiveCube (canvasData.activeCubeIndex);
         activeCube = cubes[canvasData.activeCubeIndex];
         UpdateScore(canvasData.score);
         initialized = true;
+        if (usingVR)
+        {
+            WorldControllerScript.VRIsReady();
+        } else
+        {
+            WorldControllerScript.FPSIsReady();
+        }
     }
 
     void Update()
