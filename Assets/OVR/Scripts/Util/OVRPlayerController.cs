@@ -236,10 +236,10 @@ public class OVRPlayerController : MonoBehaviour
 		if (HaltUpdateMovement)
 			return;
         
-		bool moveForward = Input.GetAxis("Vertical") == 1;
-		bool moveLeft = Input.GetAxis("Horizontal") == -1;
-		bool moveRight = Input.GetAxis("Horizontal") == 1;
-		bool moveBack = Input.GetAxis("Vertical") == -1;
+		bool moveForward = Input.GetAxis("Vertical") > 0;
+		bool moveLeft = Input.GetAxis("Horizontal") < 0;
+        bool moveRight = Input.GetAxis("Horizontal") > 0;
+		bool moveBack = Input.GetAxis("Vertical") < 0;
 
 		bool dpad_move = false;
 
