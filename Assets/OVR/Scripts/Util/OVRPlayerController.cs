@@ -392,17 +392,11 @@ public class OVRPlayerController : MonoBehaviour
         {
             if (!crouch && !crouching)
             {
-                Vector3 cameraPosition = CameraRig.transform.localPosition;
-                cameraPosition.y = 0.5f;
-                CameraRig.transform.localPosition = cameraPosition;
-                crouch = true;
+                Crouch();
             }
             else if (crouch && !crouching)
             {
-                Vector3 cameraPosition = CameraRig.transform.localPosition;
-                cameraPosition.y = 0.8f;
-                CameraRig.transform.localPosition = cameraPosition;
-                crouch = false;
+                Uncrouch();
             }
             crouching = true;
         } else
@@ -411,7 +405,21 @@ public class OVRPlayerController : MonoBehaviour
         }
     }
 
+    void Crouch()
+    {
+        Vector3 cameraPosition = CameraRig.transform.localPosition;
+        cameraPosition.y = 0.5f;
+        CameraRig.transform.localPosition = cameraPosition;
+        crouch = true;
+    }
 
+    void Uncrouch()
+    {
+        Vector3 cameraPosition = CameraRig.transform.localPosition;
+        cameraPosition.y = 0.8f;
+        CameraRig.transform.localPosition = cameraPosition;
+        crouch = false;
+    }
 	/*public void Crouch()
 	{
 		float xScale = this.transform.localScale.x;
@@ -512,5 +520,22 @@ public class OVRPlayerController : MonoBehaviour
 			transform.rotation = Quaternion.Euler(euler);
 		}
 	}
+
+    public bool IsCrouched()
+    {
+        return crouch;
+    }
+
+    public void ToggleCrouch()
+    {
+        if (crouch)
+        {
+            Uncrouch();
+        }
+        else
+        {
+            Crouch();
+        }
+    }
 }
 

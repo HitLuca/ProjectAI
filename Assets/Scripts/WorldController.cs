@@ -7,8 +7,12 @@ public class WorldController : MonoBehaviour {
     public GameObject FPSController;
     public GameObject VRController;
 
-    ActionController FPSScript;
-    ActionController VRScript;
+    ActionController FPSActionControllerScript;
+    ActionController VRActionControllerScript;
+
+    FirstPersonController FPSControllerScript;
+    OVRPlayerController VRControllerScript;
+
     bool usingVR;
     public int GuiBlocksNumber;
 
@@ -17,13 +21,16 @@ public class WorldController : MonoBehaviour {
 
     void Start() {
         usingVR = VRSettings.loadedDeviceName == "Oculus";
-        FPSScript = FPSController.GetComponent<ActionController>();
-        VRScript = VRController.GetComponent<ActionController>();
+        FPSActionControllerScript = FPSController.GetComponent<ActionController>();
+        VRActionControllerScript = VRController.GetComponent<ActionController>();
+
+        FPSControllerScript = FPSController.GetComponent<FirstPersonController>();
+        VRControllerScript = VRController.GetComponent<OVRPlayerController>();
 
         CanvasData canvasData = new CanvasData(GuiBlocksNumber);
 
-        FPSScript.SetCanvasData(canvasData);
-        VRScript.SetCanvasData(canvasData);
+        FPSActionControllerScript.SetCanvasData(canvasData);
+        VRActionControllerScript.SetCanvasData(canvasData);
 
         if (!usingVR)
         {
@@ -95,33 +102,27 @@ public class WorldController : MonoBehaviour {
         {
             if (VRReady)
             {
-                VRScript.UpdateScore(score);
+                VRActionControllerScript.UpdateScore(score);
             }
         }
         else
         {
             if (FPSReady)
             {
-                FPSScript.UpdateScore(score);
+                FPSActionControllerScript.UpdateScore(score);
             }
         }
     }
 
     public void UpdatePlayerRequestText(string text)
     {
-        if (usingVR)
+        if (usingVR && VRReady)
         {
-            if (VRReady)
-            {
-                VRScript.UpdateRequestText(text);
-            }
+            VRActionControllerScript.UpdateRequestText(text);
         }
-        else
+        else if (!usingVR && FPSReady)
         {
-            if (FPSReady)
-            {
-                FPSScript.UpdateRequestText(text);
-            }
+            FPSActionControllerScript.UpdateRequestText(text);
         }
     }
 
@@ -133,5 +134,30 @@ public class WorldController : MonoBehaviour {
     public void VRIsReady()
     {
         VRReady = true;
+    }
+
+    public bool IsPlayerCrouched()
+    {
+        if (usingVR && VRReady)
+        {
+            return VRControllerScript.IsCrouched();
+        }
+        else if (!usingVR && FPSReady)
+        {
+            return FPSControllerScript.IsCrouched();
+        }
+        else return false;
+    }
+
+    public void TogglePlayerCrouch()
+    {
+        if (usingVR && VRReady)
+        {
+            VRControllerScript.ToggleCrouch();
+        }
+        else if (!usingVR && FPSReady)
+        {
+            FPSControllerScript.ToggleCrouch();
+        }
     }
 }
