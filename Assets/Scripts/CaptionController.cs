@@ -9,10 +9,11 @@ using UnityEngine.UI;
 
 public class CaptionController : MonoBehaviour
 {
-    const string MSG_INSTRUCTION = "Please  <b>%1</b> \n by  pressing  <b>%2</b>.";
+    const string MSG_INSTRUCTION = "Please  <b>%1</b> \n by  using  <b>%2</b>.";
     const string MSG_RELEASE_KEY = "Please  release  the  key.";
     const string MSG_WAIT = "Wait...";
     const string MSG_FINISH = "Experiment  complete";
+    const string MSG_PADDING = "  ";
 
     //PUBLIC PARAMETERS
     public string filePathActions;
@@ -85,14 +86,14 @@ public class CaptionController : MonoBehaviour
     private void UpdateMessage()
     {
         ActionSequence.Action action = actionSequence.get();
-        string action_msg = action.name.Replace('_', ' ');
+        string action_msg = action.name.Replace("_", MSG_PADDING);
         string message = MSG_INSTRUCTION.Replace("%1", action_msg);
 
         string binding = "";
         if (!worldController.UsingVR())
-            binding = keyBindings[action.name][0].Replace('_', ' ');
+            binding = keyBindings[action.name][0].Replace("_", MSG_PADDING);
         else
-            binding = keyBindings[action.name][1].Replace('_', ' ');
+            binding = keyBindings[action.name][1].Replace("_", MSG_PADDING);
 
         message = message.Replace("%2", binding);
 
@@ -166,6 +167,8 @@ public class CaptionController : MonoBehaviour
     private bool isTurnLeftDown = false;
     private bool isTurnRightDown = false;
     private bool isCrouchDown = false;
+    private bool isTurningLeft = false;
+    private bool isTurningRight = false;
 
     //***************************
     //Control Handling
@@ -196,6 +199,7 @@ public class CaptionController : MonoBehaviour
 
     private bool GetButtonDown(string actionName)
     {
+        
 
         //special cases:
         //walk - vertical positive
@@ -218,6 +222,22 @@ public class CaptionController : MonoBehaviour
                 if (!isCrouchDown && Input.GetAxis("Crouch") == 1)
                 {
                     isCrouchDown = true;
+                    return true;
+                }
+                break;
+            case "Turn_Left":
+                
+                if (!isTurningLeft && Input.GetAxis("Mouse X") < -0.1)
+                {
+                    isTurningLeft = true;
+                    return true;
+                }
+                break;
+            case "Turn_Right":
+
+                if (!isTurningRight && Input.GetAxis("Mouse X") > 0.1)
+                {
+                    isTurningRight = true;
                     return true;
                 }
                 break;
@@ -255,6 +275,20 @@ public class CaptionController : MonoBehaviour
                     return true;
                 }
                 break;
+            case "Turn_Left":
+                if (isTurningLeft && Input.GetAxis("Mouse X") >= 0)
+                {
+                    isTurningLeft = false;
+                    return true;
+                }
+                break;
+            case "Turn_Right":
+                if (isTurningRight && Input.GetAxis("Mouse X") <= 0)
+                {
+                    isTurningRight = false;
+                    return true;
+                }
+                break;
             default:
                 return Input.GetButtonUp(actionName);
         }
@@ -283,6 +317,18 @@ public class CaptionController : MonoBehaviour
                 return GetButton("Crouch");
             case "Crouch":
                 if (Input.GetAxis("Crouch") == 1)
+                {
+                    return true;
+                }
+                break;
+            case "Turn_Left":
+                if (Input.GetAxis("Mouse X") < -0.1)
+                {
+                    return true;
+                }
+                break;
+            case "Turn_Right":
+                if (Input.GetAxis("Mouse X") > 0.1)
                 {
                     return true;
                 }
@@ -326,6 +372,7 @@ public class CaptionController : MonoBehaviour
     {
         actionFinished = true;
         WriteData(filePathOutput, currentEntry.ToString());
+        
         actionSequence.advance();
     }
 
@@ -421,7 +468,6 @@ public class CaptionController : MonoBehaviour
                         {
                             if (!entries[0][0].Equals('/'))
                             {
-                                Debug.Log("whatever");
                                 parsed.Add(entries);
                             }
                         }
