@@ -173,7 +173,7 @@ public class ActionController : MonoBehaviour {
         return score;
     }
 
-    void PlaceBlock()
+    void DestroyBlock()
     {
         RaycastHit hit;
         Vector3 forward = camera.transform.TransformDirection(Vector3.forward);
@@ -196,7 +196,7 @@ public class ActionController : MonoBehaviour {
         }
     }
 
-    void DestroyBlock()
+    void PlaceBlock()
     {
         RaycastHit hit;
         Vector3 forward = camera.transform.TransformDirection(Vector3.forward * 10);

@@ -1,1 +1,7 @@
-Jump Spacebar Left_Stick_Button
+Jump Spacebar A
+Walk W Left_Stick_Up
+/Run Shift_+_W Left_Trigger_+_Left_Stick_Up
+Crouch C Right_Trigger
+Stand_Up C Right_Trigger
+DestroyBlock Right_Mouse_Button B
+PlaceBlock Left_Mouse_Button X

@@ -61,10 +61,12 @@ public class CaptionController : MonoBehaviour
     {
         //actions = LoadActions(filePathActions);
         keyBindings = LoadBindings(filePathBindings);
-        
+
         actionSequence = new ActionSequence(totalTime, minDuration, maxDuration, keyBindings.Keys.ToArray());
         worldController = GameObject.Find("WorldController").GetComponent<WorldController>();
         PrepareForAction(actionSequence.get().name);
+
+        WriteData(filePathOutput, "Start " + GetCurrentUnixTimestampMillis().ToString());
     }
 
     // Update is called once per frame
@@ -171,18 +173,17 @@ public class CaptionController : MonoBehaviour
     private void PrepareForAction(string actionName)
     {
 
-        //special cases:
-        //walk - vertical positive
-        //run - run + walk
-
-        
-
         switch (actionName)
         {
             case "Stand_Up":
                 if (!worldController.IsPlayerCrouched())
                 {
-                    Debug.Log(actionName);
+                    worldController.TogglePlayerCrouch();
+                }
+                break;
+            case "Crouch":
+                if (worldController.IsPlayerCrouched())
+                {
                     worldController.TogglePlayerCrouch();
                 }
                 break;
