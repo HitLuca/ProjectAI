@@ -169,6 +169,7 @@ public class CaptionController : MonoBehaviour
     private bool isCrouchDown = false;
     private bool isTurningLeft = false;
     private bool isTurningRight = false;
+    private bool isRunning = false;
 
     //***************************
     //Control Handling
@@ -215,7 +216,12 @@ public class CaptionController : MonoBehaviour
                 }
                 break;
             case "Run":
-                return Input.GetButtonDown(actionName) && GetButtonDown("Walk");
+                if (!isRunning && Input.GetAxis(actionName) == 1 && (GetButtonDown("Walk") || GetButton("Walk")))
+                {
+                    isRunning = true;
+                    return true;
+                }
+                break;
             case "Stand_Up":
                 return GetButtonDown("Crouch");
             case "Crouch":
@@ -265,7 +271,12 @@ public class CaptionController : MonoBehaviour
                 }
                 break;
             case "Run":
-                return Input.GetButtonUp(actionName) && GetButtonUp("Walk");
+                if (isRunning && (Input.GetAxis(actionName) <= 0 || GetButtonUp("Walk")))
+                {
+                    isRunning = false;
+                    return true;
+                }
+                break;
             case "Stand_Up":
                 return GetButtonUp("Crouch");
             case "Crouch":
@@ -312,7 +323,7 @@ public class CaptionController : MonoBehaviour
                 }
                 break;
             case "Run":
-                return Input.GetButton(actionName) && GetButton("Walk");
+                return Input.GetAxis(actionName) == 1 && GetButton("Walk");
             case "Stand_Up":
                 return GetButton("Crouch");
             case "Crouch":
