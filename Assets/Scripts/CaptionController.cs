@@ -64,7 +64,7 @@ public class CaptionController : MonoBehaviour
         
         actionSequence = new ActionSequence(totalTime, minDuration, maxDuration, keyBindings.Keys.ToArray());
         worldController = GameObject.Find("WorldController").GetComponent<WorldController>();
-        
+        PrepareForAction(actionSequence.get().name);
     }
 
     // Update is called once per frame
@@ -75,6 +75,7 @@ public class CaptionController : MonoBehaviour
 
         if (!actionSequence.isFinished())
             UpdateMessage();
+
     }
 
     private void UpdateMessage()
@@ -109,7 +110,7 @@ public class CaptionController : MonoBehaviour
         else
         {
             //string keyCode = GetKeyCode(entry[1]);
-            if (Input.GetButtonDown(action.name))
+            if (GetButtonDown(action.name))
             {
                 //StopTimer();
                 if (!timerTriggerRelease)
@@ -118,14 +119,14 @@ public class CaptionController : MonoBehaviour
                     StartReleaseTimer(actionTime);
                 }
             }
-            else if (Input.GetButtonUp(action.name))
+            else if (GetButtonUp(action.name))
             {
                 currentEntry.upTimestamp = GetCurrentUnixTimestampMillis();
                 StopReleaseTimer();
                 TimerReleaseDone();
                 shouldReleaseKey = false;
             }
-            else if (Input.GetButton(action.name))
+            else if (GetButton(action.name))
             {
                 if (!timerTriggerRelease)
                 {
@@ -152,17 +153,124 @@ public class CaptionController : MonoBehaviour
             }
         }
 
-
+        //Debug.Log("printing");
         worldController.UpdatePlayerRequestText(message);
         
     }
 
-    //private GetButtonDown(string name)
-    //{
-    //    Input.GetButtonDown(name);
-    //}
-    
+    private bool isWalkDown = false;
+    private bool isRunDown = false;
+    private bool isTurnLeftDown = false;
+    private bool isTurnRightDown = false;
+    private bool isCrouchDown = false;
 
+    //***************************
+    //Control Handling
+    //***************************
+
+    private void PrepareForAction(string actionName)
+    {
+
+        //special cases:
+        //walk - vertical positive
+        //run - run + walk
+
+        
+
+        switch (actionName)
+        {
+            case "Stand_Up":
+                if (!worldController.IsPlayerCrouched())
+                {
+                    Debug.Log(actionName);
+                    worldController.TogglePlayerCrouch();
+                }
+                break;
+            default:
+                break;
+        }
+
+    }
+
+    private bool GetButtonDown(string actionName)
+    {
+
+        //special cases:
+        //walk - vertical positive
+        //run - run + walk
+
+        switch (actionName)
+        {
+            case "Walk":
+                if (!isWalkDown && Input.GetAxis("Vertical") > 0)
+                {
+                    isWalkDown = true;
+                    return true;
+                }
+                break;
+            case "Run":
+                return Input.GetButtonDown(actionName) && GetButtonDown("Walk");
+            case "Stand_Up":
+                return GetButtonDown("Crouch");
+            default:
+                return Input.GetButtonDown(actionName);
+        }
+
+        return false;
+    }
+
+    private bool GetButtonUp(string actionName)
+    {
+
+        //special cases:
+        //walk - vertical positive
+        //run - run + walk
+
+        switch (actionName)
+        {
+            case "Walk":
+                if (isWalkDown && Input.GetAxis("Vertical") <= 0)
+                {
+                    isWalkDown = false;
+                    return true;
+                }
+                break;
+            case "Run":
+                return Input.GetButtonUp(actionName) && GetButtonUp("Walk");
+            case "Stand_Up":
+                return GetButtonUp("Crouch");
+            default:
+                return Input.GetButtonUp(actionName);
+        }
+
+        return false;
+    }
+
+
+    private bool GetButton(string actionName)
+    {
+        //special cases:
+        //walk - vertical positive
+        //run - run + walk
+
+        switch (actionName)
+        {
+            case "Walk":
+                if (Input.GetAxis("Vertical") > 0)
+                {
+                    return true;
+                }
+                break;
+            case "Run":
+                return Input.GetButton(actionName) && GetButton("Walk");
+            case "Stand_Up":
+                return GetButton("Crouch");
+            default:
+                return Input.GetButton(actionName);
+        }
+
+        return false;
+    }
 
     //***************************
     //TIMER
@@ -227,10 +335,11 @@ public class CaptionController : MonoBehaviour
     private void TimerWaitingDone()
     {
         actionFinished = false;
+        PrepareForAction(actionSequence.get().name);
     }
 
     //***************************
-    //ACTION FILE READING
+    //BINDINGS AND ACTIONS READING
     //***************************
 
     private Dictionary<string, string[]> LoadBindings(string fileName)
@@ -287,7 +396,11 @@ public class CaptionController : MonoBehaviour
                         string[] entries = line.Split(' ');
                         if (entries.Length > 0)
                         {
-                            parsed.Add(entries);
+                            if (!entries[0][0].Equals('/'))
+                            {
+                                Debug.Log("whatever");
+                                parsed.Add(entries);
+                            }
                         }
 
                     }
