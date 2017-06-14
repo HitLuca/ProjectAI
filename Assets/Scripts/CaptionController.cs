@@ -9,29 +9,29 @@ using UnityEngine.UI;
 
 public class CaptionController : MonoBehaviour
 {
-    const string MSG_INSTRUCTION = "Please  <b>%1</b>  by  pressing  <b>%2</b>.";
+    const string MSG_INSTRUCTION = "Please  <b>%1</b> \n by  pressing  <b>%2</b>.";
     const string MSG_RELEASE_KEY = "Please  release  the  key.";
     const string MSG_WAIT = "Wait...";
     const string MSG_FINISH = "Experiment  complete";
 
-//PUBLIC PARAMETERS
+    //PUBLIC PARAMETERS
     public string filePathActions;
     public string filePathBindings;
     public string filePathOutput;
     public int totalTime;
 
-//ADDITIONAL PARAMETERS
+    //ADDITIONAL PARAMETERS
     int minDuration = 2;
     int maxDuration = 5;
     float actionTime = 3;
 
-//INTERNAL VARIABLES
+    //INTERNAL VARIABLES
     float timeLeftRelease = -1;
     bool timerTriggerRelease = false;
 
     float timeLeftWaiting = -1;
     bool timerTriggerWaiting = false;
-    
+
     ActionSequence actionSequence;
     WorldController worldController;
     Dictionary<string, string[]> keyBindings =
@@ -39,7 +39,8 @@ public class CaptionController : MonoBehaviour
     bool shouldReleaseKey = false;
     bool actionFinished = false;
 
-    class DataEntry {
+    class DataEntry
+    {
         public string actionName;
         public long messageTimestamp;
         public long downTimestamp;
@@ -50,7 +51,8 @@ public class CaptionController : MonoBehaviour
             actionName = "";
         }
 
-        public override string ToString() {
+        public override string ToString()
+        {
             return actionName + " " + messageTimestamp.ToString() + " " + downTimestamp.ToString() + " " + upTimestamp.ToString() + "\n";
         }
     }
@@ -143,7 +145,6 @@ public class CaptionController : MonoBehaviour
                     StartWaitingTimer(action.duration);
                     message = "Wait..." + (System.Math.Round(timeLeftWaiting)).ToString();
                     actionFinished = true;
-                    WriteData(filePathOutput, currentEntry.ToString());
                     currentEntry = new DataEntry();
                 }
 
@@ -157,7 +158,7 @@ public class CaptionController : MonoBehaviour
 
         //Debug.Log("printing");
         worldController.UpdatePlayerRequestText(message);
-        
+
     }
 
     private bool isWalkDown = false;
@@ -213,6 +214,13 @@ public class CaptionController : MonoBehaviour
                 return Input.GetButtonDown(actionName) && GetButtonDown("Walk");
             case "Stand_Up":
                 return GetButtonDown("Crouch");
+            case "Crouch":
+                if (!isCrouchDown && Input.GetAxis("Crouch") == 1)
+                {
+                    isCrouchDown = true;
+                    return true;
+                }
+                break;
             default:
                 return Input.GetButtonDown(actionName);
         }
@@ -240,6 +248,13 @@ public class CaptionController : MonoBehaviour
                 return Input.GetButtonUp(actionName) && GetButtonUp("Walk");
             case "Stand_Up":
                 return GetButtonUp("Crouch");
+            case "Crouch":
+                if (isCrouchDown && Input.GetAxis("Crouch") <= 0)
+                {
+                    isCrouchDown = false;
+                    return true;
+                }
+                break;
             default:
                 return Input.GetButtonUp(actionName);
         }
@@ -266,6 +281,12 @@ public class CaptionController : MonoBehaviour
                 return Input.GetButton(actionName) && GetButton("Walk");
             case "Stand_Up":
                 return GetButton("Crouch");
+            case "Crouch":
+                if (Input.GetAxis("Crouch") == 1)
+                {
+                    return true;
+                }
+                break;
             default:
                 return Input.GetButton(actionName);
         }
@@ -304,6 +325,7 @@ public class CaptionController : MonoBehaviour
     private void TimerReleaseDone()
     {
         actionFinished = true;
+        WriteData(filePathOutput, currentEntry.ToString());
         actionSequence.advance();
     }
 
@@ -347,7 +369,7 @@ public class CaptionController : MonoBehaviour
     {
         ArrayList parsed = Load(fileName);
         Dictionary<string, string[]> bindings = new Dictionary<string, string[]>();
-        
+
         foreach (string[] entry in parsed)
         {
             string action = entry[0];
@@ -422,7 +444,7 @@ public class CaptionController : MonoBehaviour
     //DATA WRITING
     //***************************
 
-    
+
 
     private void WriteData(string filePath, string data)
     {
