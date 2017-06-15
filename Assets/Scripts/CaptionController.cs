@@ -17,7 +17,7 @@ public class CaptionController : MonoBehaviour
     const string MSG_FINISH = "Experiment  complete";
     const string MSG_PADDING = "  ";
 
-    const string MSG_SIMULATE_INSTRUCTION = "Please  %1 \n by  thinking  about  it";
+    const string MSG_SIMULATE_INSTRUCTION = "Please  %1";
 
     //PUBLIC PARAMETERS
     public string filePathActions;
@@ -36,6 +36,8 @@ public class CaptionController : MonoBehaviour
 
     int simulateMinWaiting = 2;
     int simulateMaxWaiting = 4;
+
+    double simulateErrorProbability = 0.3;
 
     //INTERNAL VARIABLES
 
@@ -57,6 +59,7 @@ public class CaptionController : MonoBehaviour
     Timer simulateStartTimer = new Timer();
     Timer simulateActionTimer = new Timer();
     Timer simulateWaitingTimer = new Timer();
+    Timer simulateErrorTimer = new Timer();
 
     private bool isWalkDown = false;
     private bool isRunDown = false;
@@ -73,6 +76,7 @@ public class CaptionController : MonoBehaviour
     private bool isSimulatedLMouseDown = false;
     private bool isSimulatedRMouseDown = false;
 
+    //Data collection structure
     class DataEntry
     {
         public string actionName;
@@ -93,6 +97,7 @@ public class CaptionController : MonoBehaviour
 
     DataEntry currentEntry = new DataEntry();
 
+    //Timer Listeners
 
     class SimulateStartTimerListener : Timer.OnTimerDoneListener
     {
@@ -106,6 +111,7 @@ public class CaptionController : MonoBehaviour
         public void OnTimerDone()
         {
             Debug.Log("Start Timer done");
+            captionController.currentEntry.downTimestamp = GetCurrentUnixTimestampMillis();
             captionController.simulateStartTimerDone = true;
         }
     }
@@ -122,15 +128,9 @@ public class CaptionController : MonoBehaviour
         public void OnTimerDone()
         {
             Debug.Log("Action Timer done");
-            if (captionController.actionSequence.get().name.Equals("Run"))
-            {
-                InputSimulator.SimulateKeyUp((VirtualKeyCode)Enum.Parse(typeof(VirtualKeyCode), captionController.keyBindingsCaptions["Walk"][2]));
-            }
-            InputSimulator.SimulateKeyUp((VirtualKeyCode)Enum.Parse(typeof(VirtualKeyCode), captionController.keyBindingsCaptions[captionController.actionSequence.get().name][2]));
+            captionController.SimmulateActionRelease(captionController.actionSequence.get().name);
+
             captionController.simulateEnabled = false;
-            captionController.isSimulatedLMouseDown = false;
-            captionController.isSimulatedRMouseDown = false;
-            captionController.isCrouchDown = false;
             captionController.currentEntry.upTimestamp = GetCurrentUnixTimestampMillis();
             captionController.actionSequence.advance();
             captionController.WriteData(captionController.filePathOutput, captionController.currentEntry.ToString());
@@ -157,6 +157,22 @@ public class CaptionController : MonoBehaviour
         }
     }
 
+    class SimulateErrorTimerListener : Timer.OnTimerDoneListener
+    {
+        CaptionController captionController;
+
+        public SimulateErrorTimerListener(CaptionController cp)
+        {
+            captionController = cp;
+        }
+
+        public void OnTimerDone()
+        {
+            captionController.SimmulateActionRelease(captionController.actionName);
+            captionController.hasNoAction = false;
+            Debug.Log("Error Timer done");
+        }
+    }
 
     void Start()
     {
@@ -173,12 +189,8 @@ public class CaptionController : MonoBehaviour
         actionSequence = new ActionSequence(totalTime, minDuration, maxDuration, minWaiting, maxWaiting, keyBindingsCaptions.Keys.ToArray());
         worldController = GameObject.Find("WorldController").GetComponent<WorldController>();
         PrepareForAction(actionSequence.get().name);
-        
+
         WriteData(filePathOutput, "Start " + GetCurrentUnixTimestampMillis().ToString());
-
-
-
-        // InputSimulator.SimulateKeyPress((VirtualKeyCode) Enum.Parse(typeof(VirtualKeyCode), keyBindingsCaptions["Walk"][2]));
     }
 
     // Update is called once per frame
@@ -190,6 +202,7 @@ public class CaptionController : MonoBehaviour
         simulateStartTimer.UpdateTimer();
         simulateActionTimer.UpdateTimer();
         simulateWaitingTimer.UpdateTimer();
+        simulateErrorTimer.UpdateTimer();
 
         if (!actionSequence.isFinished())
             UpdateMessage();
@@ -207,6 +220,11 @@ public class CaptionController : MonoBehaviour
         }
     }
 
+
+    //***************************
+    //Free Play
+    //***************************
+
     private void UpdateFreePlayMode()
     {
         foreach (string actionName in keyBindingsCaptions.Keys)
@@ -221,6 +239,15 @@ public class CaptionController : MonoBehaviour
             }
         }
     }
+
+
+    //***************************
+    //Simmulate Mode
+    //***************************
+
+    double threshTick;
+    string actionName;
+    bool hasNoAction = false;
 
     private void UpdateMessageSimulateMode()
     {
@@ -253,50 +280,55 @@ public class CaptionController : MonoBehaviour
             simulateActionTimer.StopTimer();
             simulateActionTimer.SetOnTimerDoneListener(new SimulateActionTimerListener(this));
             simulateActionTimer.StartTimer(action.duration);
+            threshTick = action.duration*100;
         }
 
-        if(simulateEnabled)
+        if (simulateEnabled)
         {
-
-            switch (action.name)
+            float errorChoice = 1;
+            float errorHasAction = 0;
+            if (simulateErrorTimer.isFinished() && Math.Floor(simulateActionTimer.getTimeLeft() * 100) <= threshTick)
             {
-                case "Run":
-                    InputSimulator.SimulateKeyDown((VirtualKeyCode)Enum.Parse(typeof(VirtualKeyCode), keyBindingsCaptions["Walk"][2]));
-                    InputSimulator.SimulateKeyDown((VirtualKeyCode)Enum.Parse(typeof(VirtualKeyCode), keyBindingsCaptions[actionSequence.get().name][2]));
-                    break;
-
-                case "Destroy_Block":
-                    if (!isSimulatedLMouseDown)
-                    {
-                        isSimulatedLMouseDown = true;
-                        MouseSimulator.ClickRightMouseButton();
-                    }
-                    break;
-
-                case "Place_Block":
-                    if (!isSimulatedRMouseDown)
-                    {
-                        isSimulatedRMouseDown = true;
-                        MouseSimulator.ClickLeftMouseButton();
-                    }
-                    break;
-
-                case "Crouch":
-                    isCrouchDown = true;
-                    InputSimulator.SimulateKeyDown((VirtualKeyCode)Enum.Parse(typeof(VirtualKeyCode), keyBindingsCaptions[actionSequence.get().name][2]));
-                    break;
-                case "Stand_Up":
-                    isCrouchDown = true;
-                    InputSimulator.SimulateKeyDown((VirtualKeyCode)Enum.Parse(typeof(VirtualKeyCode), keyBindingsCaptions[actionSequence.get().name][2]));
-                    break;
-                default:
-                    InputSimulator.SimulateKeyDown((VirtualKeyCode)Enum.Parse(typeof(VirtualKeyCode), keyBindingsCaptions[actionSequence.get().name][2]));
-                    break;
+                threshTick = Math.Floor(simulateActionTimer.getTimeLeft() * 100) - 10;
+                errorChoice = UnityEngine.Random.Range(0.0f, 1.0f);
+                errorHasAction = UnityEngine.Random.Range(0.0f, 1.0f);
             }
-            
-        }
 
-        Debug.Log(simulateStartTimerDone);
+            if (simulateErrorTimer.isFinished())
+            {
+                actionName = action.name;
+            }
+
+            if (errorChoice > simulateErrorProbability && !hasNoAction)
+            {
+                Debug.Log(actionName);
+                SimmulateAction(actionName);
+            }
+            else
+            {
+                if (simulateErrorTimer.isFinished())
+                {
+                    SimmulateActionRelease(actionName);
+                    simulateErrorTimer.SetOnTimerDoneListener(new SimulateErrorTimerListener(this));
+                    simulateErrorTimer.StartTimer(Math.Min(simulateActionTimer.getTimeLeft(), UnityEngine.Random.Range(0.1f, 0.5f)));
+                    if (errorHasAction < 0)
+                    {
+                        var list = new List<string>(keyBindingsCaptions.Keys.ToArray());
+                        list.Remove(action.name);
+
+                        actionName = list[UnityEngine.Random.Range(0, list.Count - 1)];
+
+                        SimmulateAction(actionName);
+                        hasNoAction = false;
+                    }
+                    else {
+                        hasNoAction = true;
+                    }
+
+                }
+            }
+
+        }
 
         if (!simulateWaitingTimer.isFinished())
         {
@@ -306,6 +338,74 @@ public class CaptionController : MonoBehaviour
 
         worldController.UpdatePlayerRequestText(message);
     }
+
+    private void SimmulateActionRelease(string actionName)
+    {
+
+        if (actionName.Equals("Run"))
+        {
+            InputSimulator.SimulateKeyUp((VirtualKeyCode)Enum.Parse(typeof(VirtualKeyCode), keyBindingsCaptions["Walk"][2]));
+        }
+        InputSimulator.SimulateKeyUp((VirtualKeyCode)Enum.Parse(typeof(VirtualKeyCode), keyBindingsCaptions[actionName][2]));
+
+        isSimulatedLMouseDown = false;
+        isSimulatedRMouseDown = false;
+        isCrouchDown = false;
+    }
+
+    private void SimmulateAction(string actionName)
+    {
+        switch (actionName)
+        {
+            case "Run":
+                if(!InputSimulator.IsKeyDown((VirtualKeyCode)Enum.Parse(typeof(VirtualKeyCode), keyBindingsCaptions["Walk"][2])))
+                    InputSimulator.SimulateKeyDown((VirtualKeyCode)Enum.Parse(typeof(VirtualKeyCode), keyBindingsCaptions["Walk"][2]));
+
+                if(!InputSimulator.IsKeyDown((VirtualKeyCode)Enum.Parse(typeof(VirtualKeyCode), keyBindingsCaptions[actionSequence.get().name][2])))
+                    InputSimulator.SimulateKeyDown((VirtualKeyCode)Enum.Parse(typeof(VirtualKeyCode), keyBindingsCaptions[actionSequence.get().name][2]));
+                break;
+
+            case "Destroy_Block":
+                if (!isSimulatedLMouseDown)
+                {
+                    isSimulatedLMouseDown = true;
+                    MouseSimulator.ClickRightMouseButton();
+                }
+                break;
+
+            case "Place_Block":
+                if (!isSimulatedRMouseDown)
+                {
+                    isSimulatedRMouseDown = true;
+                    MouseSimulator.ClickLeftMouseButton();
+                }
+                break;
+
+            case "Crouch":
+                if (!worldController.IsPlayerCrouched() && !InputSimulator.IsKeyDown((VirtualKeyCode)Enum.Parse(typeof(VirtualKeyCode), keyBindingsCaptions[actionSequence.get().name][2])))
+                {
+                    isCrouchDown = true;
+                    InputSimulator.SimulateKeyDown((VirtualKeyCode)Enum.Parse(typeof(VirtualKeyCode), keyBindingsCaptions[actionSequence.get().name][2]));
+                }
+                break;
+            case "Stand_Up":
+                if (worldController.IsPlayerCrouched() && !InputSimulator.IsKeyDown((VirtualKeyCode)Enum.Parse(typeof(VirtualKeyCode), keyBindingsCaptions[actionSequence.get().name][2])))
+                {
+                    isCrouchDown = true;
+                    InputSimulator.SimulateKeyDown((VirtualKeyCode)Enum.Parse(typeof(VirtualKeyCode), keyBindingsCaptions[actionSequence.get().name][2]));
+                }
+                break;
+            default:
+                if(!InputSimulator.IsKeyDown((VirtualKeyCode)Enum.Parse(typeof(VirtualKeyCode), keyBindingsCaptions[actionSequence.get().name][2])))
+                    InputSimulator.SimulateKeyDown((VirtualKeyCode)Enum.Parse(typeof(VirtualKeyCode), keyBindingsCaptions[actionSequence.get().name][2]));
+                break;
+        }
+    }
+
+
+    //***************************
+    //Action Mode
+    //***************************
 
     private void UpdateMessageActionMode()
     {
@@ -415,12 +515,6 @@ public class CaptionController : MonoBehaviour
 
     private bool GetButtonDown(string actionName)
     {
-        
-
-        //special cases:
-        //walk - vertical positive
-        //run - run + walk
-
         switch (actionName)
         {
             case "Walk":
@@ -471,11 +565,7 @@ public class CaptionController : MonoBehaviour
 
     private bool GetButtonUp(string actionName)
     {
-
-        //special cases:
-        //walk - vertical positive
-        //run - run + walk
-
+        
         switch (actionName)
         {
             case "Walk":
@@ -525,9 +615,6 @@ public class CaptionController : MonoBehaviour
 
     private bool GetButton(string actionName)
     {
-        //special cases:
-        //walk - vertical positive
-        //run - run + walk
 
         switch (actionName)
         {
