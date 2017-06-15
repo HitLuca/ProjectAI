@@ -6,6 +6,8 @@ using System.Linq;
 using System.Text;
 using UnityEngine;
 using UnityEngine.UI;
+using WindowsInput;
+
 
 public class CaptionController : MonoBehaviour
 {
@@ -15,11 +17,14 @@ public class CaptionController : MonoBehaviour
     const string MSG_FINISH = "Experiment  complete";
     const string MSG_PADDING = "  ";
 
+    const string MSG_SIMULATE_INSTRUCTION = "Please  <b>%1</b> \n by  thinking  about  it";
+
     //PUBLIC PARAMETERS
     public string filePathActions;
     public string filePathBindings;
     public string filePathOutput;
     public int totalTime;
+    public int mode; //0 - perform actions instructions, 1 - simulate, 2 - FreePlay
 
     //ADDITIONAL PARAMETERS
     int minDuration = 2;
@@ -27,6 +32,7 @@ public class CaptionController : MonoBehaviour
     float actionTime = 3;
 
     //INTERNAL VARIABLES
+
     float timeLeftRelease = -1;
     bool timerTriggerRelease = false;
 
@@ -35,10 +41,22 @@ public class CaptionController : MonoBehaviour
 
     ActionSequence actionSequence;
     WorldController worldController;
-    Dictionary<string, string[]> keyBindings =
+    Dictionary<string, VirtualKeyCode> keyBindingsVirtual;
+    Dictionary<string, string[]> keyBindingsCaptions =
             new Dictionary<string, string[]>();
+    Dictionary<string, string> freePlayData =
+        new Dictionary<string, string>();
     bool shouldReleaseKey = false;
     bool actionFinished = false;
+
+    private bool isWalkDown = false;
+    private bool isRunDown = false;
+    private bool isTurnLeftDown = false;
+    private bool isTurnRightDown = false;
+    private bool isCrouchDown = false;
+    private bool isTurningLeft = false;
+    private bool isTurningRight = false;
+    private bool isRunning = false;
 
     class DataEntry
     {
@@ -63,9 +81,22 @@ public class CaptionController : MonoBehaviour
     void Start()
     {
         //actions = LoadActions(filePathActions);
-        keyBindings = LoadBindings(filePathBindings);
+        keyBindingsCaptions = LoadBindings(filePathBindings);
 
-        actionSequence = new ActionSequence(totalTime, minDuration, maxDuration, keyBindings.Keys.ToArray());
+        keyBindingsVirtual = new Dictionary<string, VirtualKeyCode>()
+        {
+            { "Walk", VirtualKeyCode.VK_W},
+            { "Run", VirtualKeyCode.SHIFT },
+            { "Crouch",  VirtualKeyCode.VK_C },
+            { "Stand_Up",  VirtualKeyCode.VK_C },
+            { "Turn_Left",  VirtualKeyCode.VK_Q },
+            { "Turn_Right",  VirtualKeyCode.VK_E },
+            { "Jump",  VirtualKeyCode.SPACE },
+            { "DestroyBlock",  VirtualKeyCode.RBUTTON },
+            { "PlaceBlock",  VirtualKeyCode.LBUTTON },
+        };
+
+        actionSequence = new ActionSequence(totalTime, minDuration, maxDuration, keyBindingsCaptions.Keys.ToArray());
         worldController = GameObject.Find("WorldController").GetComponent<WorldController>();
         PrepareForAction(actionSequence.get().name);
 
@@ -85,15 +116,109 @@ public class CaptionController : MonoBehaviour
 
     private void UpdateMessage()
     {
+        switch (mode)
+        {
+            case 0: UpdateMessageActionMode(); break;
+            case 1: UpdateMessageSimulateMode(); break;
+            case 2: UpdateFreePlayMode(); break;
+        }
+    }
+
+    private void UpdateFreePlayMode()
+    {
+        foreach (string actionName in keyBindingsCaptions.Keys)
+        {
+            if (GetButtonDown(actionName))
+            {
+                freePlayData[actionName] = GetCurrentUnixTimestampMillis().ToString();
+            }
+            else if(GetButtonUp(actionName))
+            {
+                WriteData(filePathOutput, actionName + " " + freePlayData[actionName] + " " + GetCurrentUnixTimestampMillis().ToString());
+            }
+        }
+    }
+
+    private void UpdateMessageSimulateMode()
+    {
+        ActionSequence.Action action = actionSequence.get();
+        string action_msg = action.name.Replace("_", MSG_PADDING);
+        string message = MSG_SIMULATE_INSTRUCTION.Replace("%1", action_msg);
+
+        if (!currentEntry.actionName.Equals(action.name))
+        {
+            currentEntry.actionName = action.name;
+            currentEntry.messageTimestamp = GetCurrentUnixTimestampMillis();
+        }
+        
+        
+        WindowsInput.InputSimulator.SimulateKeyPress(VirtualKeyCode.VK_W);
+
+        if (timerTriggerWaiting)
+            message = MSG_WAIT + "  " + (System.Math.Round(timeLeftWaiting)).ToString();
+        else if (actionSequence.isFinished())
+        {
+            message = MSG_FINISH;
+        }
+        else
+        {
+            //string keyCode = GetKeyCode(entry[1]);
+            if (GetButtonDown(action.name))
+            {
+                //StopTimer();
+                if (!timerTriggerRelease)
+                {
+                    currentEntry.downTimestamp = GetCurrentUnixTimestampMillis();
+                    StartReleaseTimer(actionTime);
+                }
+            }
+            else if (GetButtonUp(action.name))
+            {
+                currentEntry.upTimestamp = GetCurrentUnixTimestampMillis();
+                StopReleaseTimer();
+                TimerReleaseDone();
+                shouldReleaseKey = false;
+            }
+            else if (GetButton(action.name))
+            {
+                if (!timerTriggerRelease)
+                {
+                    shouldReleaseKey = true;
+                    message = MSG_RELEASE_KEY;
+                }
+            }
+            else {
+
+                if (!actionSequence.isLast() && !timerTriggerRelease && !shouldReleaseKey && actionFinished)
+                {
+                    StartWaitingTimer(action.duration);
+                    message = "Wait..." + (System.Math.Round(timeLeftWaiting)).ToString();
+                    actionFinished = true;
+                    currentEntry = new DataEntry();
+                }
+
+                if (actionSequence.isLast())
+                {
+                    actionSequence.advance();
+                    message = "Experiment complete";
+                }
+            }
+        }
+        
+        worldController.UpdatePlayerRequestText(message);
+    }
+
+    private void UpdateMessageActionMode()
+    {
         ActionSequence.Action action = actionSequence.get();
         string action_msg = action.name.Replace("_", MSG_PADDING);
         string message = MSG_INSTRUCTION.Replace("%1", action_msg);
 
         string binding = "";
         if (!worldController.UsingVR())
-            binding = keyBindings[action.name][0].Replace("_", MSG_PADDING);
+            binding = keyBindingsCaptions[action.name][0].Replace("_", MSG_PADDING);
         else
-            binding = keyBindings[action.name][1].Replace("_", MSG_PADDING);
+            binding = keyBindingsCaptions[action.name][1].Replace("_", MSG_PADDING);
 
         message = message.Replace("%2", binding);
 
@@ -162,15 +287,6 @@ public class CaptionController : MonoBehaviour
 
     }
 
-    private bool isWalkDown = false;
-    private bool isRunDown = false;
-    private bool isTurnLeftDown = false;
-    private bool isTurnRightDown = false;
-    private bool isCrouchDown = false;
-    private bool isTurningLeft = false;
-    private bool isTurningRight = false;
-    private bool isRunning = false;
-
     //***************************
     //Control Handling
     //***************************
@@ -233,7 +349,7 @@ public class CaptionController : MonoBehaviour
                 break;
             case "Turn_Left":
                 
-                if (!isTurningLeft && Input.GetAxis("Mouse X") < -0.1)
+                if (!isTurningLeft && Input.GetAxis("Mouse X") < 0)
                 {
                     isTurningLeft = true;
                     return true;
@@ -241,7 +357,7 @@ public class CaptionController : MonoBehaviour
                 break;
             case "Turn_Right":
 
-                if (!isTurningRight && Input.GetAxis("Mouse X") > 0.1)
+                if (!isTurningRight && Input.GetAxis("Mouse X") > 0)
                 {
                     isTurningRight = true;
                     return true;
@@ -333,13 +449,13 @@ public class CaptionController : MonoBehaviour
                 }
                 break;
             case "Turn_Left":
-                if (Input.GetAxis("Mouse X") < -0.1)
+                if (Input.GetAxis("Mouse X") < 0)
                 {
                     return true;
                 }
                 break;
             case "Turn_Right":
-                if (Input.GetAxis("Mouse X") > 0.1)
+                if (Input.GetAxis("Mouse X") > 0)
                 {
                     return true;
                 }
