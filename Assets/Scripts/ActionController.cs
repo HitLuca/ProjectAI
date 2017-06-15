@@ -42,13 +42,13 @@ public class ActionController : MonoBehaviour {
 
     void Update()
     {
-		if (Input.GetButtonDown("PlaceBlock")) {
+		if (Input.GetButtonDown("Place_Block")) {
             PlaceBlock();
 		}
-		if (Input.GetButtonDown("DestroyBlock")) {
+		if (Input.GetButtonDown("Destroy_Block")) {
             DestroyBlock();
 		}
-		if (Input.GetButtonDown("CycleBlocks")) {
+		if (Input.GetButtonDown("Cycle_Blocks")) {
 			LoopActiveCube ();
 		}
     }

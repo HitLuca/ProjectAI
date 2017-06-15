@@ -11,13 +11,13 @@ using WindowsInput;
 
 public class CaptionController : MonoBehaviour
 {
-    const string MSG_INSTRUCTION = "Please  <b>%1</b> \n by  using  <b>%2</b>.";
+    const string MSG_INSTRUCTION = "Please  %1  \n by  using  %2.";
     const string MSG_RELEASE_KEY = "Please  release  the  key.";
     const string MSG_WAIT = "Wait...";
     const string MSG_FINISH = "Experiment  complete";
     const string MSG_PADDING = "  ";
 
-    const string MSG_SIMULATE_INSTRUCTION = "Please  <b>%1</b> \n by  thinking  about  it";
+    const string MSG_SIMULATE_INSTRUCTION = "Please  %1 \n by  thinking  about  it";
 
     //PUBLIC PARAMETERS
     public string filePathActions;
@@ -41,7 +41,6 @@ public class CaptionController : MonoBehaviour
 
     ActionSequence actionSequence;
     WorldController worldController;
-    Dictionary<string, VirtualKeyCode> keyBindingsVirtual;
     Dictionary<string, string[]> keyBindingsCaptions =
             new Dictionary<string, string[]>();
     Dictionary<string, string> freePlayData =
@@ -83,24 +82,13 @@ public class CaptionController : MonoBehaviour
         //actions = LoadActions(filePathActions);
         keyBindingsCaptions = LoadBindings(filePathBindings);
 
-        keyBindingsVirtual = new Dictionary<string, VirtualKeyCode>()
-        {
-            { "Walk", VirtualKeyCode.VK_W},
-            { "Run", VirtualKeyCode.SHIFT },
-            { "Crouch",  VirtualKeyCode.VK_C },
-            { "Stand_Up",  VirtualKeyCode.VK_C },
-            { "Turn_Left",  VirtualKeyCode.VK_Q },
-            { "Turn_Right",  VirtualKeyCode.VK_E },
-            { "Jump",  VirtualKeyCode.SPACE },
-            { "DestroyBlock",  VirtualKeyCode.RBUTTON },
-            { "PlaceBlock",  VirtualKeyCode.LBUTTON },
-        };
-
         actionSequence = new ActionSequence(totalTime, minDuration, maxDuration, keyBindingsCaptions.Keys.ToArray());
         worldController = GameObject.Find("WorldController").GetComponent<WorldController>();
         PrepareForAction(actionSequence.get().name);
-
+        
         WriteData(filePathOutput, "Start " + GetCurrentUnixTimestampMillis().ToString());
+
+        // InputSimulator.SimulateKeyPress((VirtualKeyCode) Enum.Parse(typeof(VirtualKeyCode), keyBindingsCaptions["Walk"][2]));
     }
 
     // Update is called once per frame
@@ -150,12 +138,9 @@ public class CaptionController : MonoBehaviour
             currentEntry.actionName = action.name;
             currentEntry.messageTimestamp = GetCurrentUnixTimestampMillis();
         }
-        
-        
-        WindowsInput.InputSimulator.SimulateKeyPress(VirtualKeyCode.VK_W);
 
         if (timerTriggerWaiting)
-            message = MSG_WAIT + "  " + (System.Math.Round(timeLeftWaiting)).ToString();
+            message = MSG_WAIT + "  " + (Math.Round(timeLeftWaiting)).ToString();
         else if (actionSequence.isFinished())
         {
             message = MSG_FINISH;
@@ -192,7 +177,7 @@ public class CaptionController : MonoBehaviour
                 if (!actionSequence.isLast() && !timerTriggerRelease && !shouldReleaseKey && actionFinished)
                 {
                     StartWaitingTimer(action.duration);
-                    message = "Wait..." + (System.Math.Round(timeLeftWaiting)).ToString();
+                    message = "Wait..." + (Math.Round(timeLeftWaiting)).ToString();
                     actionFinished = true;
                     currentEntry = new DataEntry();
                 }
@@ -229,10 +214,10 @@ public class CaptionController : MonoBehaviour
         }
 
         if (timerTriggerRelease)
-            message += "..." + (System.Math.Round(timeLeftRelease)).ToString();
+            message += "..." + (Math.Round(timeLeftRelease)).ToString();
 
         if (timerTriggerWaiting)
-            message = MSG_WAIT + "  " + (System.Math.Round(timeLeftWaiting)).ToString();
+            message = MSG_WAIT + "  " + (Math.Round(timeLeftWaiting)).ToString();
         else if (actionSequence.isFinished())
         {
             message = MSG_FINISH;
@@ -269,7 +254,7 @@ public class CaptionController : MonoBehaviour
                 if (!actionSequence.isLast() && !timerTriggerRelease && !shouldReleaseKey && actionFinished)
                 {
                     StartWaitingTimer(action.duration);
-                    message = "Wait..." + (System.Math.Round(timeLeftWaiting)).ToString();
+                    message = "Wait..." + (Math.Round(timeLeftWaiting)).ToString();
                     actionFinished = true;
                     currentEntry = new DataEntry();
                 }
@@ -551,9 +536,10 @@ public class CaptionController : MonoBehaviour
             //entry.RemoveAt(0);
             //String.Join(" ", entry)
 
-            string[] controls = new string[2];
+            string[] controls = new string[3];
             controls[0] = entry[1];
             controls[1] = entry[2];
+            controls[2] = entry[3];
 
             bindings.Add(action, controls);
         }

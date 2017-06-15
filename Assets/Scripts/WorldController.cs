@@ -43,7 +43,7 @@ public class WorldController : MonoBehaviour {
     }
     
     void Update() {
-        if (Input.GetButtonDown("ChangePlayMode"))
+        if (Input.GetButtonDown("Change_Play_Mode"))
         {
             if (usingVR)
             {
