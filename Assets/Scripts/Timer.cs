@@ -44,6 +44,16 @@ public class Timer{
         }
     }
 
+    public bool isFinished()
+    {
+        return !timerTrigger;
+    }
+
+    public float getTimeLeft()
+    {
+        return timeLeft;
+    }
+
     private void TimerDone()
     {
 
