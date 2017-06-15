@@ -6,13 +6,8 @@ public class SunBehavior : MonoBehaviour {
     public float orbitRadius;
     public float angleStep;
 
-    private float angle;
-
-    private void Start()
-    {
-        angle = -1;
-    }
-
+    public float angle;
+    
     void FixedUpdate () {
         angle += angleStep;
         Vector3 newPosition = Vector3.zero;
