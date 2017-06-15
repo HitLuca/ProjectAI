@@ -32,6 +32,7 @@ public class CaptionController : MonoBehaviour
     int minWaiting = 0;
     int maxWaiting = 0;
     float actionTime = 3;
+    float simulateWaitingTime = 2;
 
     int simulateMinWaiting = 2;
     int simulateMaxWaiting = 4;
@@ -55,6 +56,7 @@ public class CaptionController : MonoBehaviour
 
     Timer simulateStartTimer = new Timer();
     Timer simulateActionTimer = new Timer();
+    Timer simulateWaitingTimer = new Timer();
 
     private bool isWalkDown = false;
     private bool isRunDown = false;
@@ -65,7 +67,7 @@ public class CaptionController : MonoBehaviour
     private bool isTurningRight = false;
     private bool isRunning = false;
 
-    private bool simulateStartDone = false;
+    private bool simulateStartTimerDone = false;
     private bool simulateEnabled = false;
 
     private bool isSimulatedLMouseDown = false;
@@ -104,7 +106,7 @@ public class CaptionController : MonoBehaviour
         public void OnTimerDone()
         {
             Debug.Log("Start Timer done");
-            captionController.simulateStartDone = true;
+            captionController.simulateStartTimerDone = true;
         }
     }
 
@@ -126,15 +128,35 @@ public class CaptionController : MonoBehaviour
             }
             InputSimulator.SimulateKeyUp((VirtualKeyCode)Enum.Parse(typeof(VirtualKeyCode), captionController.keyBindingsCaptions[captionController.actionSequence.get().name][2]));
             captionController.simulateEnabled = false;
-            captionController.actionFinished = true;
             captionController.isSimulatedLMouseDown = false;
             captionController.isSimulatedRMouseDown = false;
             captionController.isCrouchDown = false;
             captionController.currentEntry.upTimestamp = GetCurrentUnixTimestampMillis();
             captionController.actionSequence.advance();
             captionController.WriteData(captionController.filePathOutput, captionController.currentEntry.ToString());
+
+            captionController.simulateWaitingTimer.StopTimer();
+            captionController.simulateWaitingTimer.SetOnTimerDoneListener(new SimulateWaitingTimerListener(captionController));
+            captionController.simulateWaitingTimer.StartTimer(captionController.simulateWaitingTime);
         }
     }
+
+    class SimulateWaitingTimerListener : Timer.OnTimerDoneListener
+    {
+        CaptionController captionController;
+
+        public SimulateWaitingTimerListener(CaptionController cp)
+        {
+            captionController = cp;
+        }
+
+        public void OnTimerDone()
+        {
+            Debug.Log("Waiting Timer done");
+            captionController.actionFinished = true;
+        }
+    }
+
 
     void Start()
     {
@@ -167,6 +189,7 @@ public class CaptionController : MonoBehaviour
 
         simulateStartTimer.UpdateTimer();
         simulateActionTimer.UpdateTimer();
+        simulateWaitingTimer.UpdateTimer();
 
         if (!actionSequence.isFinished())
             UpdateMessage();
@@ -225,9 +248,9 @@ public class CaptionController : MonoBehaviour
             simulateStartTimer.StartTimer(action.waitingTime);
         }
 
-        if (simulateStartDone)
+        if (simulateStartTimerDone)
         {
-            simulateStartDone = false;
+            simulateStartTimerDone = false;
             simulateEnabled = true;
             simulateActionTimer.StopTimer();
             simulateActionTimer.SetOnTimerDoneListener(new SimulateActionTimerListener(this));
@@ -273,6 +296,14 @@ public class CaptionController : MonoBehaviour
                     break;
             }
             
+        }
+
+        Debug.Log(simulateStartTimerDone);
+
+        if (!simulateWaitingTimer.isFinished())
+        {
+
+            message = MSG_WAIT + Math.Round(simulateWaitingTimer.getTimeLeft());
         }
 
         worldController.UpdatePlayerRequestText(message);
