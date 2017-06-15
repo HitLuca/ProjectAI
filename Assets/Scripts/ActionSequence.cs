@@ -7,12 +7,13 @@ public class ActionSequence{
     public class Action {
         public string name;
         public int duration;
+        public int waitingTime;
     }
 
     List<Action> sequence;
     int index = 0;
 
-    public ActionSequence(int totalTime, int minDuration, int maxDuration, string[] actionNames)
+    public ActionSequence(int totalTime, int minDuration, int maxDuration, int minWaiting, int maxWaiting, string[] actionNames)
     {
         sequence = new List<Action>();
         int currentTime = 0;
@@ -21,9 +22,10 @@ public class ActionSequence{
         {
             Action action = new Action();
             action.duration = Random.Range(minDuration, maxDuration+1);
+            action.waitingTime = Random.Range(minWaiting, maxWaiting + 1);
             action.name = actionNames[Random.Range(0, actionNames.Length)];
             sequence.Add(action);
-            currentTime += action.duration;
+            currentTime += action.duration + action.waitingTime;
         }
     }
 

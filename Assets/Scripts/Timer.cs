@@ -20,18 +20,18 @@ public class Timer{
         this.onTimerDoneListener = onTimerDoneListener;
     }
 
-    private void StartTimer(float time)
+    public void StartTimer(float time)
     {
         timeLeft = time;
         timerTrigger = true;
     }
 
-    private void StopTimer()
+    public void StopTimer()
     {
         timerTrigger = false;
     }
 
-    private void UpdateTimer()
+    public void UpdateTimer()
     {
         if (timerTrigger)
         {
