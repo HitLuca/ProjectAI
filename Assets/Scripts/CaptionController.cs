@@ -172,9 +172,7 @@ public class CaptionController : MonoBehaviour
             UpdateMessage();
 
     }
-
-    bool f = true;
-
+    
     private void UpdateMessage()
     {
         
