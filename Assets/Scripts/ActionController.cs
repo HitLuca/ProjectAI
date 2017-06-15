@@ -164,6 +164,10 @@ public class ActionController : MonoBehaviour {
         }
         else if (name.Contains("GrassCube"))
         {
+            score += 3;
+        }
+        else if (name.Contains("CobblestoneCube"))
+        {
             score += 5;
         }
         else if (name.Contains("StoneCube"))

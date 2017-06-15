@@ -11,7 +11,7 @@ using WindowsInput;
 
 public class CaptionController : MonoBehaviour
 {
-    const string MSG_INSTRUCTION = "Please  %1  \n by  using  %2.";
+    const string MSG_INSTRUCTION = "Please  %1  \n by  using  %2 .";
     const string MSG_RELEASE_KEY = "Please  release  the  key.";
     const string MSG_WAIT = "Wait...";
     const string MSG_FINISH = "Experiment  complete";
