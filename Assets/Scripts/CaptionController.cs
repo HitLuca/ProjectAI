@@ -17,11 +17,7 @@ public class CaptionController : MonoBehaviour
     const string MSG_FINISH = "Experiment  complete";
     const string MSG_PADDING = "  ";
 
-    const string MSG_SIMULATE_INSTRUCTION = "Please  %1";
-
-    const string MODE_FREEPLAY = "FreePlay";
-    const string MODE_ACTION = "Action";
-    const string MODE_SIMULATE = "Simulate";
+    const string MSG_SIMULATE_INSTRUCTION = "Please  <color=red>%1</color>";
 
     //PUBLIC PARAMETERS
     public string filePathBindings;
@@ -185,31 +181,14 @@ public class CaptionController : MonoBehaviour
             minWaiting = simulateMinWaiting;
             maxWaiting = simulateMaxWaiting;
         }
-        string modeStr = "";
-
-        switch (mode)
-        {
-            case 0:
-                modeStr = MODE_ACTION;
-                break;
-
-            case 1:
-                modeStr = MODE_SIMULATE;
-                break;
-
-            case 2:
-                modeStr = MODE_FREEPLAY;
-                break;
-        }
-
-        //actions = LoadActions(filePathActions);
+        
         keyBindingsCaptions = LoadBindings(filePathBindings);
 
         actionSequence = new ActionSequence(totalTime, minDuration, maxDuration, minWaiting, maxWaiting, keyBindingsCaptions.Keys.ToArray());
         worldController = GameObject.Find("WorldController").GetComponent<WorldController>();
         PrepareForAction(actionSequence.get().name);
 
-        WriteData(filePathOutput, "Start " + modeStr + " " + GetCurrentUnixTimestampMillis().ToString());
+        WriteData(filePathOutput, "Start " + GetCurrentUnixTimestampMillis().ToString());
     }
 
     // Update is called once per frame
@@ -869,7 +848,7 @@ public class CaptionController : MonoBehaviour
     }
 
     private static readonly DateTime UnixEpoch =
-    new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Local);
+    new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
 
     public static long GetCurrentUnixTimestampMillis()
     {
