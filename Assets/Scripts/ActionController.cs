@@ -3,9 +3,17 @@ using System.Collections.Generic;
 using UnityEngine;
 using System.Linq;
 using UnityEngine.UI;
+using System;
 
 public class ActionController : MonoBehaviour {
-	public bool usingVR;
+
+    const int HIGHEST_TEXT_Y = 180;
+    const int LOWEST_TEXT_Y = 50;
+
+    private int textY = HIGHEST_TEXT_Y;
+    Timer centeredTextTimer = new Timer();
+
+    public bool usingVR;
 
     WorldController WorldControllerScript;
 	Camera camera;
@@ -20,6 +28,7 @@ public class ActionController : MonoBehaviour {
 
     void Start()
     {
+        updateTextPosition();
         WorldControllerScript = GameObject.Find("WorldController").GetComponent<WorldController>();
 		if (usingVR) {
 			camera = FindChild (this.transform, "CenterEyeAnchor").GetComponent<Camera> ();
@@ -42,7 +51,8 @@ public class ActionController : MonoBehaviour {
 
     void Update()
     {
-		if (Input.GetButtonDown("Place_Block")) {
+        centeredTextTimer.UpdateTimer();
+        if (Input.GetButtonDown("Place_Block")) {
             PlaceBlock();
 		}
 		if (Input.GetButtonDown("Destroy_Block")) {
@@ -51,6 +61,8 @@ public class ActionController : MonoBehaviour {
 		if (Input.GetButtonDown("Cycle_Blocks")) {
 			LoopActiveCube ();
 		}
+
+        updateTextPosition();
     }
 
     private void OnEnable()
@@ -242,5 +254,24 @@ public class ActionController : MonoBehaviour {
     public void SetCanvasData(CanvasData canvasData)
     {
         this.canvasData = canvasData;
+    }
+
+    public void updateTextPosition()
+    {
+        
+        if (centeredTextTimer.isFinished() && textY < HIGHEST_TEXT_Y)
+        {
+            Text requestText = canvas.transform.Find("RequestText").GetComponent<Text>();
+            
+            requestText.transform.localPosition = new Vector3(requestText.transform.localPosition.x, textY, requestText.transform.localPosition.z);
+            textY += 5;
+        }
+    }
+
+    public void resetText()
+    {
+        textY = LOWEST_TEXT_Y;
+        updateTextPosition();
+        centeredTextTimer.StartTimer(1.5f);
     }
 }

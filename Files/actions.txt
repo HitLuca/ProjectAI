@@ -1,3 +1,0 @@
-walk
-jump
-walk

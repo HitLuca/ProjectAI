@@ -11,7 +11,7 @@ using WindowsInput;
 
 public class CaptionController : MonoBehaviour
 {
-    const string MSG_INSTRUCTION = "Please  %1  \n by  using  %2 .";
+    const string MSG_INSTRUCTION = "Please  <color=red>%1</color>  \n by  using  <color=red>%2</color> .";
     const string MSG_RELEASE_KEY = "Please  release  the  key.";
     const string MSG_WAIT = "Wait...";
     const string MSG_FINISH = "Experiment  complete";
@@ -24,7 +24,6 @@ public class CaptionController : MonoBehaviour
     const string MODE_SIMULATE = "Simulate";
 
     //PUBLIC PARAMETERS
-    public string filePathActions;
     public string filePathBindings;
     public string filePathOutput;
     public int totalTime;
@@ -233,8 +232,8 @@ public class CaptionController : MonoBehaviour
     {
         switch (mode)
         {
-            case 0: UpdateMessageActionMode(); break;
-            case 1: UpdateMessageSimulateMode(); break;
+            case 0: UpdateActionMode(); break;
+            case 1: UpdateSimulateMode(); break;
             case 2: UpdateFreePlayMode(); break;
         }
     }
@@ -268,7 +267,7 @@ public class CaptionController : MonoBehaviour
     string actionName;
     bool hasNoAction = false;
 
-    private void UpdateMessageSimulateMode()
+    private void UpdateSimulateMode()
     {
         ActionSequence.Action action = actionSequence.get();
         string action_msg = action.name.Replace("_", MSG_PADDING);
@@ -351,8 +350,18 @@ public class CaptionController : MonoBehaviour
 
         if (!simulateWaitingTimer.isFinished())
         {
-
+            isWaitMessage = true;
             message = MSG_WAIT + Math.Round(simulateWaitingTimer.getTimeLeft());
+        }
+        else
+        {
+
+            if (isWaitMessage)
+            {
+                worldController.AnimateTextPosition();
+            }
+            isWaitMessage = false;
+            
         }
 
         worldController.UpdatePlayerRequestText(message);
@@ -436,8 +445,8 @@ public class CaptionController : MonoBehaviour
     //***************************
     //Action Mode
     //***************************
-
-    private void UpdateMessageActionMode()
+    bool isWaitMessage = false;
+    private void UpdateActionMode()
     {
         ActionSequence.Action action = actionSequence.get();
         string action_msg = action.name.Replace("_", MSG_PADDING);
@@ -461,59 +470,72 @@ public class CaptionController : MonoBehaviour
             message += "..." + (Math.Round(timeLeftRelease)).ToString();
 
         if (timerTriggerWaiting)
-            message = MSG_WAIT + "  " + (Math.Round(timeLeftWaiting)).ToString();
-        else if (actionSequence.isFinished())
         {
-            message = MSG_FINISH;
+            message = MSG_WAIT + "  " + (Math.Round(timeLeftWaiting)).ToString();
+            isWaitMessage = true;
         }
         else
         {
-            //string keyCode = GetKeyCode(entry[1]);
-            if (GetButtonDown(action.name))
+            if (isWaitMessage)
             {
-                //StopTimer();
-                if (!timerTriggerRelease)
+                worldController.AnimateTextPosition();
+            }
+            isWaitMessage = false;
+            if (actionSequence.isFinished())
+            {
+                message = MSG_FINISH;
+            }
+            else
+            {
+                //string keyCode = GetKeyCode(entry[1]);
+                if (GetButtonDown(action.name))
                 {
-                    currentEntry.downTimestamp = GetCurrentUnixTimestampMillis();
-                    StartReleaseTimer(actionTime);
+                    //StopTimer();
+                    if (!timerTriggerRelease)
+                    {
+                        currentEntry.downTimestamp = GetCurrentUnixTimestampMillis();
+                        StartReleaseTimer(actionTime);
+                    }
                 }
-            }
-            else if (GetButtonUp(action.name))
-            {
-                currentEntry.upTimestamp = GetCurrentUnixTimestampMillis();
-                StopReleaseTimer();
-                TimerReleaseDone();
-                shouldReleaseKey = false;
-            }
-            else if (GetButton(action.name))
-            {
-                if (!timerTriggerRelease)
+                else if (GetButtonUp(action.name))
                 {
-                    shouldReleaseKey = true;
-                    message = MSG_RELEASE_KEY;
+                    currentEntry.upTimestamp = GetCurrentUnixTimestampMillis();
+                    StopReleaseTimer();
+                    TimerReleaseDone();
+                    shouldReleaseKey = false;
                 }
-            }
-            else {
+                else if (GetButton(action.name))
+                {
+                    if (!timerTriggerRelease)
+                    {
+                        shouldReleaseKey = true;
+                        message = MSG_RELEASE_KEY;
+                    }
+                }
+                else
+                {
 
-                if (!actionSequence.isLast() && !timerTriggerRelease && !shouldReleaseKey && actionFinished)
-                {
-                    StartWaitingTimer(action.duration);
-                    message = "Wait..." + (Math.Round(timeLeftWaiting)).ToString();
-                    actionFinished = true;
-                    currentEntry = new DataEntry();
-                }
+                    if (!actionSequence.isLast() && !timerTriggerRelease && !shouldReleaseKey && actionFinished)
+                    {
+                        StartWaitingTimer(action.duration);
+                        message = "Wait..." + (Math.Round(timeLeftWaiting)).ToString();
+                        actionFinished = true;
+                        currentEntry = new DataEntry();
+                    }
 
-                if (actionSequence.isLast())
-                {
-                    actionSequence.advance();
-                    message = "Experiment complete";
+                    if (actionSequence.isLast())
+                    {
+                        actionSequence.advance();
+                        message = "Experiment complete";
+                    }
                 }
             }
         }
 
         //Debug.Log("printing");
-        worldController.UpdatePlayerRequestText(message);
 
+
+        worldController.UpdatePlayerRequestText(message);
     }
 
     //***************************

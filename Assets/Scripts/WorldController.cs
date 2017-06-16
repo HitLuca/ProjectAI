@@ -160,4 +160,16 @@ public class WorldController : MonoBehaviour {
             FPSControllerScript.ToggleCrouch();
         }
     }
+    
+    public void AnimateTextPosition()
+    {
+        if (usingVR && VRReady)
+        {
+            VRActionControllerScript.resetText();
+        }
+        else if (!usingVR && FPSReady)
+        {
+            FPSActionControllerScript.resetText();
+        }
+    }
 }
