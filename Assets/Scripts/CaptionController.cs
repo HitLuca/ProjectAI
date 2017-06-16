@@ -311,7 +311,7 @@ public class CaptionController : MonoBehaviour
                     SimmulateActionRelease(actionName);
                     simulateErrorTimer.SetOnTimerDoneListener(new SimulateErrorTimerListener(this));
                     simulateErrorTimer.StartTimer(Math.Min(simulateActionTimer.getTimeLeft(), UnityEngine.Random.Range(0.1f, 0.5f)));
-                    if (errorHasAction < 0)
+                    if (errorHasAction < 1)
                     {
                         var list = new List<string>(keyBindingsCaptions.Keys.ToArray());
                         list.Remove(action.name);
@@ -395,13 +395,17 @@ public class CaptionController : MonoBehaviour
                     InputSimulator.SimulateKeyDown((VirtualKeyCode)Enum.Parse(typeof(VirtualKeyCode), keyBindingsCaptions[actionSequence.get().name][2]));
                 }
                 break;
+            case "Walk":
+                if (!InputSimulator.IsKeyDown((VirtualKeyCode)Enum.Parse(typeof(VirtualKeyCode), keyBindingsCaptions[actionSequence.get().name][2])))
+                    InputSimulator.SimulateKeyDown((VirtualKeyCode)Enum.Parse(typeof(VirtualKeyCode), keyBindingsCaptions[actionSequence.get().name][2]));
+                break;
+
             default:
                 if(!InputSimulator.IsKeyDown((VirtualKeyCode)Enum.Parse(typeof(VirtualKeyCode), keyBindingsCaptions[actionSequence.get().name][2])))
                     InputSimulator.SimulateKeyDown((VirtualKeyCode)Enum.Parse(typeof(VirtualKeyCode), keyBindingsCaptions[actionSequence.get().name][2]));
                 break;
         }
     }
-
 
     //***************************
     //Action Mode
