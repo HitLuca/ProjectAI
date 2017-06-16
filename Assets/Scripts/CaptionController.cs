@@ -19,6 +19,10 @@ public class CaptionController : MonoBehaviour
 
     const string MSG_SIMULATE_INSTRUCTION = "Please  %1";
 
+    const string MODE_FREEPLAY = "FreePlay";
+    const string MODE_ACTION = "Action";
+    const string MODE_SIMULATE = "Simulate";
+
     //PUBLIC PARAMETERS
     public string filePathActions;
     public string filePathBindings;
@@ -37,7 +41,7 @@ public class CaptionController : MonoBehaviour
     int simulateMinWaiting = 2;
     int simulateMaxWaiting = 4;
 
-    double simulateErrorProbability = 0.3;
+    public double simulateErrorProbability = 0.3;
 
     //INTERNAL VARIABLES
 
@@ -182,6 +186,22 @@ public class CaptionController : MonoBehaviour
             minWaiting = simulateMinWaiting;
             maxWaiting = simulateMaxWaiting;
         }
+        string modeStr = "";
+
+        switch (mode)
+        {
+            case 0:
+                modeStr = MODE_ACTION;
+                break;
+
+            case 1:
+                modeStr = MODE_SIMULATE;
+                break;
+
+            case 2:
+                modeStr = MODE_FREEPLAY;
+                break;
+        }
 
         //actions = LoadActions(filePathActions);
         keyBindingsCaptions = LoadBindings(filePathBindings);
@@ -190,7 +210,7 @@ public class CaptionController : MonoBehaviour
         worldController = GameObject.Find("WorldController").GetComponent<WorldController>();
         PrepareForAction(actionSequence.get().name);
 
-        WriteData(filePathOutput, "Start " + GetCurrentUnixTimestampMillis().ToString());
+        WriteData(filePathOutput, "Start " + modeStr + " " + GetCurrentUnixTimestampMillis().ToString());
     }
 
     // Update is called once per frame
