@@ -29,6 +29,8 @@ public class CaptionController : MonoBehaviour
     public string filePathOutput;
     public int totalTime;
     public int mode; //0 - perform actions instructions, 1 - simulate, 2 - FreePlay
+    public float actionActivationProbability;
+    public float simulateErrorProbability;
 
     //ADDITIONAL PARAMETERS
     int minDuration = 2;
@@ -40,8 +42,6 @@ public class CaptionController : MonoBehaviour
 
     int simulateMinWaiting = 2;
     int simulateMaxWaiting = 4;
-
-    public double simulateErrorProbability = 0.3;
 
     //INTERNAL VARIABLES
 
@@ -231,7 +231,6 @@ public class CaptionController : MonoBehaviour
     
     private void UpdateMessage()
     {
-        
         switch (mode)
         {
             case 0: UpdateMessageActionMode(); break;
@@ -331,7 +330,7 @@ public class CaptionController : MonoBehaviour
                     SimmulateActionRelease(actionName);
                     simulateErrorTimer.SetOnTimerDoneListener(new SimulateErrorTimerListener(this));
                     simulateErrorTimer.StartTimer(Math.Min(simulateActionTimer.getTimeLeft(), UnityEngine.Random.Range(0.1f, 0.5f)));
-                    if (errorHasAction < 1)
+                    if (errorHasAction < actionActivationProbability)
                     {
                         var list = new List<string>(keyBindingsCaptions.Keys.ToArray());
                         list.Remove(action.name);
@@ -375,14 +374,16 @@ public class CaptionController : MonoBehaviour
 
     private void SimmulateAction(string actionName)
     {
+        string actionCode = keyBindingsCaptions[actionName][2];
+
         switch (actionName)
         {
             case "Run":
-                if(!InputSimulator.IsKeyDown((VirtualKeyCode)Enum.Parse(typeof(VirtualKeyCode), keyBindingsCaptions["Walk"][2])))
+                if(!IsKeyDown(keyBindingsCaptions["Walk"][2]))
                     InputSimulator.SimulateKeyDown((VirtualKeyCode)Enum.Parse(typeof(VirtualKeyCode), keyBindingsCaptions["Walk"][2]));
 
-                if(!InputSimulator.IsKeyDown((VirtualKeyCode)Enum.Parse(typeof(VirtualKeyCode), keyBindingsCaptions[actionSequence.get().name][2])))
-                    InputSimulator.SimulateKeyDown((VirtualKeyCode)Enum.Parse(typeof(VirtualKeyCode), keyBindingsCaptions[actionSequence.get().name][2]));
+                if(!IsKeyDown(actionCode))
+                    InputSimulator.SimulateKeyDown((VirtualKeyCode)Enum.Parse(typeof(VirtualKeyCode), keyBindingsCaptions[actionName][2]));
                 break;
 
             case "Destroy_Block":
@@ -402,29 +403,34 @@ public class CaptionController : MonoBehaviour
                 break;
 
             case "Crouch":
-                if (!worldController.IsPlayerCrouched() && !InputSimulator.IsKeyDown((VirtualKeyCode)Enum.Parse(typeof(VirtualKeyCode), keyBindingsCaptions[actionSequence.get().name][2])))
+                if (!worldController.IsPlayerCrouched() && !IsKeyDown(actionCode))
                 {
                     isCrouchDown = true;
-                    InputSimulator.SimulateKeyDown((VirtualKeyCode)Enum.Parse(typeof(VirtualKeyCode), keyBindingsCaptions[actionSequence.get().name][2]));
+                    InputSimulator.SimulateKeyDown((VirtualKeyCode)Enum.Parse(typeof(VirtualKeyCode), keyBindingsCaptions[actionName][2]));
                 }
                 break;
             case "Stand_Up":
-                if (worldController.IsPlayerCrouched() && !InputSimulator.IsKeyDown((VirtualKeyCode)Enum.Parse(typeof(VirtualKeyCode), keyBindingsCaptions[actionSequence.get().name][2])))
+                if (worldController.IsPlayerCrouched() && !IsKeyDown(actionCode))
                 {
                     isCrouchDown = true;
-                    InputSimulator.SimulateKeyDown((VirtualKeyCode)Enum.Parse(typeof(VirtualKeyCode), keyBindingsCaptions[actionSequence.get().name][2]));
+                    InputSimulator.SimulateKeyDown((VirtualKeyCode)Enum.Parse(typeof(VirtualKeyCode), keyBindingsCaptions[actionName][2]));
                 }
                 break;
             case "Walk":
-                if (!InputSimulator.IsKeyDown((VirtualKeyCode)Enum.Parse(typeof(VirtualKeyCode), keyBindingsCaptions[actionSequence.get().name][2])))
-                    InputSimulator.SimulateKeyDown((VirtualKeyCode)Enum.Parse(typeof(VirtualKeyCode), keyBindingsCaptions[actionSequence.get().name][2]));
+                if (!IsKeyDown(actionCode))
+                    InputSimulator.SimulateKeyDown((VirtualKeyCode)Enum.Parse(typeof(VirtualKeyCode), keyBindingsCaptions[actionName][2]));
                 break;
 
             default:
-                if(!InputSimulator.IsKeyDown((VirtualKeyCode)Enum.Parse(typeof(VirtualKeyCode), keyBindingsCaptions[actionSequence.get().name][2])))
-                    InputSimulator.SimulateKeyDown((VirtualKeyCode)Enum.Parse(typeof(VirtualKeyCode), keyBindingsCaptions[actionSequence.get().name][2]));
+                if(!IsKeyDown(actionCode))
+                    InputSimulator.SimulateKeyDown((VirtualKeyCode)Enum.Parse(typeof(VirtualKeyCode), keyBindingsCaptions[actionName][2]));
                 break;
         }
+    }
+
+    bool IsKeyDown(string actionCode)
+    {
+        return InputSimulator.IsKeyDown((VirtualKeyCode)Enum.Parse(typeof(VirtualKeyCode), actionCode));
     }
 
     //***************************
