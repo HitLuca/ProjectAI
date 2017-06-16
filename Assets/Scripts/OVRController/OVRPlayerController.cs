@@ -78,6 +78,8 @@ public class OVRPlayerController : MonoBehaviour
 	/// </summary>
 	public bool useProfileData = true;
 
+    public bool toggleCrouch;
+
 	protected CharacterController Controller = null;
 	protected OVRCameraRig CameraRig = null;
 
@@ -388,20 +390,26 @@ public class OVRPlayerController : MonoBehaviour
 
     void CheckCrouching()
     {
-        if (Input.GetAxis("Crouch") == 1)
+        if(toggleCrouch)
         {
-            if (!crouch && !crouching)
+            if (Input.GetAxis("Crouch") == 1 && !crouching)
+            {
+                ToggleCrouch();
+                crouching = true;
+            } else if (Input.GetAxis("Crouch") != 1)
+            {
+                crouching = false;
+            }
+        } else
+        {
+            if (Input.GetAxis("Crouch") == 1 && !crouch)
             {
                 Crouch();
             }
-            else if (crouch && !crouching)
+            else if(Input.GetAxis("Crouch") != 1 && crouch)
             {
                 Uncrouch();
             }
-            crouching = true;
-        } else
-        {
-            crouching = false;
         }
     }
 

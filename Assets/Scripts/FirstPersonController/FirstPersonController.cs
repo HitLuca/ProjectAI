@@ -22,6 +22,8 @@ public class FirstPersonController : MonoBehaviour
     [SerializeField] private AudioClip m_JumpSound;           // the sound played when character leaves the ground.
     [SerializeField] private AudioClip m_LandSound;           // the sound played when character touches back on ground.
 
+    public bool toggleCrouch; 
+
     private Camera m_Camera;
     private bool m_Jump;
     private bool m_Crouch;
@@ -191,6 +193,30 @@ public class FirstPersonController : MonoBehaviour
         else
         {
             m_Crouching = false;
+        }
+
+        if (toggleCrouch)
+        {
+            if (Input.GetAxis("Crouch") == 1 && !m_Crouching)
+            {
+                ToggleCrouch();
+                m_Crouching = true;
+            }
+            else if (Input.GetAxis("Crouch") != 1)
+            {
+                m_Crouching = false;
+            }
+        }
+        else
+        {
+            if (Input.GetAxis("Crouch") == 1 && !m_Crouch)
+            {
+                Crouch();
+            }
+            else if (Input.GetAxis("Crouch") != 1 && m_Crouch)
+            {
+                Uncrouch();
+            }
         }
     }
 
