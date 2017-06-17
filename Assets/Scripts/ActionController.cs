@@ -40,13 +40,6 @@ public class ActionController : MonoBehaviour {
         activeCube = cubes[canvasData.activeCubeIndex];
         UpdateScore(canvasData.score);
         initialized = true;
-        if (usingVR)
-        {
-            WorldControllerScript.VRIsReady();
-        } else
-        {
-            WorldControllerScript.FPSIsReady();
-        }
     }
 
     void Update()
@@ -240,15 +233,23 @@ public class ActionController : MonoBehaviour {
 
     public void UpdateScore(int score)
     {
-        canvasData.score = score;
-        Text scoreText = canvas.transform.Find("ScoreValueText").GetComponent<Text>();
-        scoreText.text = canvasData.score.ToString();
+        try
+        {
+            canvasData.score = score;
+            Text scoreText = canvas.transform.Find("ScoreValueText").GetComponent<Text>();
+            scoreText.text = canvasData.score.ToString();
+        }
+        catch (Exception e) { }
     }
 
     public void UpdateRequestText(string text)
     {
-        Text requestText = canvas.transform.Find("RequestText").GetComponent<Text>();
-        requestText.text = text;
+        try
+        {
+            Text requestText = canvas.transform.Find("RequestText").GetComponent<Text>();
+            requestText.text = text;
+        }
+        catch (Exception e) { }
     }
 
     public void SetCanvasData(CanvasData canvasData)

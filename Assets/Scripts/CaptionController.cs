@@ -138,7 +138,7 @@ public class CaptionController : MonoBehaviour
             captionController.simulateWaitingTimer.SetOnTimerDoneListener(new SimulateWaitingTimerListener(captionController));
             captionController.simulateWaitingTimer.StartTimer(captionController.simulateWaitingTime);
         }
-    }
+    }  
 
     class SimulateWaitingTimerListener : Timer.OnTimerDoneListener
     {

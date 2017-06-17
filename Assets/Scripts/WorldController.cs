@@ -4,8 +4,20 @@ using UnityEngine;
 using UnityEngine.VR;
 
 public class WorldController : MonoBehaviour {
+    [Header("Player controllers")]
     public GameObject FPSController;
     public GameObject VRController;
+
+    [Header("Blocks used in game")]
+    public int blocksNumber;
+
+    [Header("Tree spawning")]
+    public bool spawnTrees;
+    [Range(10, 250)]
+    public int spawnSquareLength;
+    [Range(0f, 1f)]
+    public float spawnPercentage;
+    public GameObject tree;
 
     ActionController FPSActionControllerScript;
     ActionController VRActionControllerScript;
@@ -14,8 +26,6 @@ public class WorldController : MonoBehaviour {
     OVRPlayerController VRControllerScript;
 
     bool usingVR;
-    public int GuiBlocksNumber;
-
     bool FPSReady = false;
     bool VRReady = false;
 
@@ -27,11 +37,11 @@ public class WorldController : MonoBehaviour {
         FPSControllerScript = FPSController.GetComponent<FirstPersonController>();
         VRControllerScript = VRController.GetComponent<OVRPlayerController>();
 
-        CanvasData canvasData = new CanvasData(GuiBlocksNumber);
+        CanvasData canvasData = new CanvasData(blocksNumber);
 
         FPSActionControllerScript.SetCanvasData(canvasData);
         VRActionControllerScript.SetCanvasData(canvasData);
-
+        
         if (!usingVR)
         {
             EnableFPSController();
@@ -39,6 +49,12 @@ public class WorldController : MonoBehaviour {
         else
         {
             EnableVRController();
+        }
+
+
+        if(spawnTrees)
+        {
+            SpawnTrees();
         }
     }
     
@@ -100,62 +116,45 @@ public class WorldController : MonoBehaviour {
     {
         if (usingVR)
         {
-            if (VRReady)
-            {
-                VRActionControllerScript.UpdateScore(score);
-            }
+            VRActionControllerScript.UpdateScore(score);
         }
         else
         {
-            if (FPSReady)
-            {
-                FPSActionControllerScript.UpdateScore(score);
-            }
+            FPSActionControllerScript.UpdateScore(score);
         }
     }
 
     public void UpdatePlayerRequestText(string text)
     {
-        if (usingVR && VRReady)
+        if (usingVR)
         {
             VRActionControllerScript.UpdateRequestText(text);
         }
-        else if (!usingVR && FPSReady)
+        else
         {
             FPSActionControllerScript.UpdateRequestText(text);
         }
     }
 
-    public void FPSIsReady()
-    {
-        FPSReady = true;
-    }
-
-    public void VRIsReady()
-    {
-        VRReady = true;
-    }
-
     public bool IsPlayerCrouched()
     {
-        if (usingVR && VRReady)
+        if (usingVR)
         {
             return VRControllerScript.IsCrouched();
         }
-        else if (!usingVR && FPSReady)
+        else
         {
             return FPSControllerScript.IsCrouched();
         }
-        else return false;
     }
 
     public void TogglePlayerCrouch()
     {
-        if (usingVR && VRReady)
+        if (usingVR)
         {
             VRControllerScript.ToggleCrouch();
         }
-        else if (!usingVR && FPSReady)
+        else
         {
             FPSControllerScript.ToggleCrouch();
         }
@@ -163,13 +162,28 @@ public class WorldController : MonoBehaviour {
     
     public void AnimateTextPosition()
     {
-        if (usingVR && VRReady)
+        if (usingVR)
         {
             VRActionControllerScript.resetText();
         }
-        else if (!usingVR && FPSReady)
+        else
         {
             FPSActionControllerScript.resetText();
+        }
+    }
+
+    void SpawnTrees() {
+        int halfSide = Mathf.RoundToInt(spawnSquareLength / 2.0f);
+        for (int x = -halfSide; x < halfSide; x++)
+        {
+            for (int z = -halfSide; z < halfSide; z++)
+            {
+                if (Random.Range(0f, 1f) < spawnPercentage && x!=0 && z!=0)
+                {
+                    Vector3 coords = new Vector3(x, 0, z);
+                    PlaceObject(tree, coords);
+                }
+            }
         }
     }
 }
