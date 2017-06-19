@@ -342,8 +342,8 @@ public class ActionController : MonoBehaviour {
                         activeJoystick = joystickImages["XboxControllerTR"];
                         break;
                     case "Run":
-                        joystickImages["XboxControllerLT"].GetComponent<Image>().enabled = true;
-                        activeJoystick = joystickImages["XboxControllerLT"];
+                        joystickImages["XboxControllerSP"].GetComponent<Image>().enabled = true;
+                        activeJoystick = joystickImages["XboxControllerSP"];
                         break;
                     default:
                         Debug.LogError("Action " + actionName + " is not mapped to any joystick image!");
