@@ -512,8 +512,13 @@ public class CaptionController : MonoBehaviour
                 else if (GetButtonUp(action.name))
                 {
                     currentEntry.upTimestamp = GetCurrentUnixTimestampMillis();
+                    Debug.Log(currentEntry.upTimestamp);
                     StopReleaseTimer();
-                    TimerReleaseDone();
+
+                    WriteData(filePathOutput, currentEntry.ToString());
+                    actionFinished = true;
+                    actionSequence.advance();
+                    //TimerReleaseDone();
                     shouldReleaseKey = false;
                 }
                 else if (GetButton(action.name))
@@ -744,10 +749,6 @@ public class CaptionController : MonoBehaviour
 
     private void TimerReleaseDone()
     {
-        actionFinished = true;
-        WriteData(filePathOutput, currentEntry.ToString());
-        
-        actionSequence.advance();
     }
 
 
