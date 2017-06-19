@@ -56,14 +56,8 @@ public class Timer{
 
     private void TimerDone()
     {
-
-
         if (onTimerDoneListener != null)
             onTimerDoneListener.OnTimerDone();
-
-        //Debug.Log("Done");
-        //actionFinished = true;
-        //actionSequence.advance();
     }
 
     

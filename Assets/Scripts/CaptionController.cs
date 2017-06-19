@@ -19,6 +19,10 @@ public class CaptionController : MonoBehaviour
 
     const string MSG_SIMULATE_INSTRUCTION = "Please  <color=red>%1</color>";
 
+    const string MODE_FREEPLAY = "FreePlay";
+    const string MODE_ACTION = "Action";
+    const string MODE_SIMULATE = "Simulate";
+
     //PUBLIC PARAMETERS
     public string filePathBindings;
     public string filePathOutput;
@@ -37,7 +41,7 @@ public class CaptionController : MonoBehaviour
 
     int simulateMinWaiting = 2;
     int simulateMaxWaiting = 4;
-
+    
     //INTERNAL VARIABLES
 
     float timeLeftRelease = -1;
@@ -131,12 +135,12 @@ public class CaptionController : MonoBehaviour
 
             captionController.simulateEnabled = false;
             captionController.currentEntry.upTimestamp = GetCurrentUnixTimestampMillis();
-            captionController.actionSequence.advance();
             captionController.WriteData(captionController.filePathOutput, captionController.currentEntry.ToString());
-
+            
             captionController.simulateWaitingTimer.StopTimer();
             captionController.simulateWaitingTimer.SetOnTimerDoneListener(new SimulateWaitingTimerListener(captionController));
             captionController.simulateWaitingTimer.StartTimer(captionController.simulateWaitingTime);
+            
         }
     }  
 
@@ -153,6 +157,8 @@ public class CaptionController : MonoBehaviour
         {
             Debug.Log("Waiting Timer done");
             captionController.actionFinished = true;
+            captionController.currentEntry = new CaptionController.DataEntry();
+            captionController.actionSequence.advance();
         }
     }
 
@@ -181,14 +187,31 @@ public class CaptionController : MonoBehaviour
             minWaiting = simulateMinWaiting;
             maxWaiting = simulateMaxWaiting;
         }
-        
+        string modeStr = "";
+
+        switch (mode)
+        {
+            case 0:
+                modeStr = MODE_ACTION;
+                break;
+
+            case 1:
+                modeStr = MODE_SIMULATE;
+                break;
+
+            case 2:
+                modeStr = MODE_FREEPLAY;
+                break;
+        }
+
+        //actions = LoadActions(filePathActions);
         keyBindingsCaptions = LoadBindings(filePathBindings);
 
         actionSequence = new ActionSequence(totalTime, minDuration, maxDuration, minWaiting, maxWaiting, keyBindingsCaptions.Keys.ToArray());
         worldController = GameObject.Find("WorldController").GetComponent<WorldController>();
         PrepareForAction(actionSequence.get().name);
 
-        WriteData(filePathOutput, "Start " + GetCurrentUnixTimestampMillis().ToString());
+        WriteData(filePathOutput, "Start " + modeStr + " " + GetCurrentUnixTimestampMillis().ToString());
     }
 
     // Update is called once per frame
@@ -204,6 +227,11 @@ public class CaptionController : MonoBehaviour
 
         if (!actionSequence.isFinished())
             UpdateMessage();
+        else
+        {
+            Application.Quit();
+            UnityEditor.EditorApplication.isPlaying = false;
+        }
 
     }
     
@@ -262,7 +290,7 @@ public class CaptionController : MonoBehaviour
         if ((action.name.Equals("Crouch") && !isCrouchDown) || (action.name.Equals("Stand_Up") && !isCrouchDown))
             PrepareForAction(action.name);
 
-        if (actionFinished)
+        if (actionFinished && !actionSequence.isFinished())
         {
             actionFinished = false;
             simulateStartTimer.StopTimer();
@@ -298,7 +326,6 @@ public class CaptionController : MonoBehaviour
 
             if (errorChoice > simulateErrorProbability && !hasNoAction)
             {
-                Debug.Log(actionName);
                 SimmulateAction(actionName);
             }
             else
@@ -334,13 +361,19 @@ public class CaptionController : MonoBehaviour
         }
         else
         {
-
             if (isWaitMessage)
             {
                 worldController.AnimatePlayerTextPosition();
             }
+
+            //if (!simulateEnabled && !simulateStartTimerDone && actionSequence.isLast())
+            //{
+            //    message = MSG_FINISH;
+            //    actionSequence.advance();
+            //}
+
             isWaitMessage = false;
-            
+
         }
 
         worldController.UpdatePlayerRequestText(message);
@@ -479,8 +512,13 @@ public class CaptionController : MonoBehaviour
                 else if (GetButtonUp(action.name))
                 {
                     currentEntry.upTimestamp = GetCurrentUnixTimestampMillis();
+                    Debug.Log(currentEntry.upTimestamp);
                     StopReleaseTimer();
-                    TimerReleaseDone();
+
+                    WriteData(filePathOutput, currentEntry.ToString());
+                    actionFinished = true;
+                    actionSequence.advance();
+                    //TimerReleaseDone();
                     shouldReleaseKey = false;
                 }
                 else if (GetButton(action.name))
@@ -502,18 +540,15 @@ public class CaptionController : MonoBehaviour
                         currentEntry = new DataEntry();
                     }
 
-                    if (actionSequence.isLast())
-                    {
-                        actionSequence.advance();
-                        message = "Experiment complete";
-                    }
+                    //if (actionSequence.isLast())
+                    //{
+                    //    actionSequence.advance();
+                    //    message = "Experiment complete";
+                    //}
                 }
             }
         }
-
-        //Debug.Log("printing");
-
-
+        
         worldController.UpdatePlayerRequestText(message);
         worldController.DisplayPlayerJoystick(action_msg);
     }
@@ -715,10 +750,6 @@ public class CaptionController : MonoBehaviour
 
     private void TimerReleaseDone()
     {
-        actionFinished = true;
-        WriteData(filePathOutput, currentEntry.ToString());
-        
-        actionSequence.advance();
     }
 
 
