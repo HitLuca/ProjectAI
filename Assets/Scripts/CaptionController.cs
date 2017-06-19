@@ -337,7 +337,7 @@ public class CaptionController : MonoBehaviour
 
             if (isWaitMessage)
             {
-                worldController.AnimateTextPosition();
+                worldController.AnimatePlayerTextPosition();
             }
             isWaitMessage = false;
             
@@ -457,7 +457,7 @@ public class CaptionController : MonoBehaviour
         {
             if (isWaitMessage)
             {
-                worldController.AnimateTextPosition();
+                worldController.AnimatePlayerTextPosition();
             }
             isWaitMessage = false;
             if (actionSequence.isFinished())
@@ -515,6 +515,7 @@ public class CaptionController : MonoBehaviour
 
 
         worldController.UpdatePlayerRequestText(message);
+        worldController.DisplayPlayerJoystick(action_msg);
     }
 
     //***************************

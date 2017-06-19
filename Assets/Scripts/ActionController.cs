@@ -20,6 +20,10 @@ public class ActionController : MonoBehaviour {
 	Canvas canvas;
 
 	public GameObject[] cubes;
+    Dictionary<string, GameObject> joystickImages;
+    GameObject activeJoystick;
+    string activeAction;
+
     CanvasData canvasData;
     
 	GameObject activeCube;
@@ -28,17 +32,34 @@ public class ActionController : MonoBehaviour {
 
     void Start()
     {
-        updateTextPosition();
+        UpdateTextPosition();
         WorldControllerScript = GameObject.Find("WorldController").GetComponent<WorldController>();
+
+        // get camera reference
 		if (usingVR) {
 			camera = FindChild (this.transform, "CenterEyeAnchor").GetComponent<Camera> ();
 		} else {
 			camera = FindChild (this.transform, "FirstPersonCharacter").GetComponent<Camera> ();
 		}
 		canvas = FindChild(camera.transform, "Canvas").GetComponent<Canvas>();
+
+        // set initial parameters
 		SetCanvasActiveCube (canvasData.activeCubeIndex);
         activeCube = cubes[canvasData.activeCubeIndex];
         UpdateScore(canvasData.score);
+
+        // setup joystick images dictionary
+        joystickImages = new Dictionary<string, GameObject>();
+        GameObject temp = canvas.transform.Find("Joysticks").gameObject;
+        int joystickImagesCount = temp.transform.childCount;
+        for (int i = 0; i < joystickImagesCount; i++)
+        {
+            GameObject image = temp.transform.GetChild(i).gameObject;
+            joystickImages[image.name] = image;
+        }
+        activeJoystick = null;
+
+        // initialization is finished
         initialized = true;
     }
 
@@ -55,7 +76,7 @@ public class ActionController : MonoBehaviour {
 			LoopActiveCube ();
 		}
 
-        updateTextPosition();
+        UpdateTextPosition();
     }
 
     private void OnEnable()
@@ -257,7 +278,7 @@ public class ActionController : MonoBehaviour {
         this.canvasData = canvasData;
     }
 
-    public void updateTextPosition()
+    public void UpdateTextPosition()
     {
         
         if (centeredTextTimer.isFinished() && textY < HIGHEST_TEXT_Y)
@@ -269,10 +290,79 @@ public class ActionController : MonoBehaviour {
         }
     }
 
-    public void resetText()
+    public void ResetText()
     {
         textY = LOWEST_TEXT_Y;
-        updateTextPosition();
+        UpdateTextPosition();
         centeredTextTimer.StartTimer(1.5f);
+    }
+
+    public void DisplayJoystick(string actionName)
+    {
+        try
+        {
+            if (!String.Equals(activeAction, actionName))
+            {
+                if (activeJoystick != null)
+                {
+                    activeJoystick.GetComponent<Image>().enabled = false;
+                }
+                switch (actionName)
+                {
+                    case "Jump":
+                        joystickImages["XboxControllerA"].GetComponent<Image>().enabled = true;
+                        activeJoystick = joystickImages["XboxControllerA"];
+                        break;
+                    case "Destroy  Block":
+                        joystickImages["XboxControllerB"].GetComponent<Image>().enabled = true;
+                        activeJoystick = joystickImages["XboxControllerB"];
+                        break;
+                    case "Place  Block":
+                        joystickImages["XboxControllerX"].GetComponent<Image>().enabled = true;
+                        activeJoystick = joystickImages["XboxControllerX"];
+                        break;
+                    case "Crouch":
+                        joystickImages["XboxControllerRT"].GetComponent<Image>().enabled = true;
+                        activeJoystick = joystickImages["XboxControllerRT"];
+                        break;
+                    case "Stand  Up":
+                        joystickImages["XboxControllerRT"].GetComponent<Image>().enabled = true;
+                        activeJoystick = joystickImages["XboxControllerRT"];
+                        break;
+                    case "Walk":
+                        joystickImages["XboxControllerFW"].GetComponent<Image>().enabled = true;
+                        activeJoystick = joystickImages["XboxControllerFW"];
+                        break;
+                    case "Turn  Left":
+                        joystickImages["XboxControllerTL"].GetComponent<Image>().enabled = true;
+                        activeJoystick = joystickImages["XboxControllerTL"];
+                        break;
+                    case "Turn  Right":
+                        joystickImages["XboxControllerTR"].GetComponent<Image>().enabled = true;
+                        activeJoystick = joystickImages["XboxControllerTR"];
+                        break;
+                    case "Run":
+                        joystickImages["XboxControllerLT"].GetComponent<Image>().enabled = true;
+                        activeJoystick = joystickImages["XboxControllerLT"];
+                        break;
+                    default:
+                        Debug.LogError("Action " + actionName + " is not mapped to any joystick image!");
+                        break;
+                }
+                activeAction = actionName;
+            }
+        }
+        catch (Exception e) { }
+    }
+
+    public void HideJoysticks()
+    {
+        try
+        {
+            activeJoystick.GetComponent<Image>().enabled = false;
+            activeJoystick = null;
+            activeAction = null;
+        }
+        catch (Exception e) { }
     }
 }

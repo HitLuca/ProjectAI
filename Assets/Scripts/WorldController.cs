@@ -11,14 +11,6 @@ public class WorldController : MonoBehaviour {
     [Header("Blocks used in game")]
     public int blocksNumber;
 
-    [Header("Tree spawning")]
-    public bool spawnTrees;
-    [Range(10, 250)]
-    public int spawnSquareLength;
-    [Range(0f, 1f)]
-    public float spawnPercentage;
-    public GameObject tree;
-
     ActionController FPSActionControllerScript;
     ActionController VRActionControllerScript;
 
@@ -50,12 +42,6 @@ public class WorldController : MonoBehaviour {
         {
             EnableVRController();
         }
-
-
-        if(spawnTrees)
-        {
-            SpawnTrees();
-        }
     }
     
     void Update() {
@@ -86,7 +72,7 @@ public class WorldController : MonoBehaviour {
     }
 
 	bool EmptySpace(Vector3 position) {
-		return Physics.CheckSphere (position, 0.9f);
+		return Physics.CheckSphere (position, 1f);
 	}
 
     public bool UsingVR()
@@ -160,30 +146,39 @@ public class WorldController : MonoBehaviour {
         }
     }
     
-    public void AnimateTextPosition()
+    public void AnimatePlayerTextPosition()
     {
         if (usingVR)
         {
-            VRActionControllerScript.resetText();
+            VRActionControllerScript.ResetText();
         }
         else
         {
-            FPSActionControllerScript.resetText();
+            FPSActionControllerScript.ResetText();
         }
     }
 
-    void SpawnTrees() {
-        int halfSide = Mathf.RoundToInt(spawnSquareLength / 2.0f);
-        for (int x = -halfSide; x < halfSide; x++)
+    public void DisplayPlayerJoystick(string actionName)
+    {
+        if (usingVR)
         {
-            for (int z = -halfSide; z < halfSide; z++)
-            {
-                if (Random.Range(0f, 1f) < spawnPercentage && x!=0 && z!=0)
-                {
-                    Vector3 coords = new Vector3(x, 0, z);
-                    PlaceObject(tree, coords);
-                }
-            }
+            VRActionControllerScript.DisplayJoystick(actionName);
+        }
+        else
+        {
+            FPSActionControllerScript.DisplayJoystick(actionName);
+        }
+    }
+
+    public void HidePlayerJoysticks()
+    {
+        if (usingVR)
+        {
+            VRActionControllerScript.HideJoysticks();
+        }
+        else
+        {
+            FPSActionControllerScript.HideJoysticks();
         }
     }
 }
