@@ -550,7 +550,11 @@ public class CaptionController : MonoBehaviour
         }
         
         worldController.UpdatePlayerRequestText(message);
-        worldController.DisplayPlayerJoystick(action_msg);
+
+        if (actionFinished)
+            worldController.HidePlayerJoysticks();
+        else
+            worldController.DisplayPlayerJoystick(action_msg);
     }
 
     //***************************
