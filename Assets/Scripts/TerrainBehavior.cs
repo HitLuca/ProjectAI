@@ -9,7 +9,7 @@ public class TerrainBehavior : MonoBehaviour {
 
     [Header("Tree spawning")]
     public bool spawnTrees;
-    [Range(0f, 1f)]
+    [Range(0f, 0.005f)]
     public float treesSpawnPercentage;
     public GameObject[] trees;
 
@@ -51,7 +51,7 @@ public class TerrainBehavior : MonoBehaviour {
         {
             for (int z = -halfSide; z < halfSide; z++)
             {
-                if (Random.Range(0f, 1f) < spawnPercentage && x != 0 && z != 0)
+                if (Random.Range(0f, 1f) < spawnPercentage && x + z != 0)
                 {
                     Vector3 coords = new Vector3(x, 0, z);
                     worldControllerScript.PlaceObject(objects[Random.Range(0, objects.Length)], coords);
