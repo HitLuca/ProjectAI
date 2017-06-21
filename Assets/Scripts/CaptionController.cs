@@ -32,8 +32,8 @@ public class CaptionController : MonoBehaviour
     public float simulateErrorProbability;
 
     //ADDITIONAL PARAMETERS
-    int minDuration = 2;
-    int maxDuration = 5;
+    int minDuration = 3;
+    int maxDuration = 3;
     int minWaiting = 0;
     int maxWaiting = 0;
     float actionTime = 3;
@@ -63,6 +63,8 @@ public class CaptionController : MonoBehaviour
     Timer simulateActionTimer = new Timer();
     Timer simulateWaitingTimer = new Timer();
     Timer simulateErrorTimer = new Timer();
+
+    Timer quitTimer = new Timer();
 
     private bool isWalkDown = false;
     private bool isRunDown = false;
@@ -179,6 +181,22 @@ public class CaptionController : MonoBehaviour
         }
     }
 
+    class QuitTimerListener : Timer.OnTimerDoneListener
+    {
+        CaptionController captionController;
+
+        public QuitTimerListener(CaptionController cp)
+        {
+            captionController = cp;
+        }
+
+        public void OnTimerDone()
+        {
+            Application.Quit();
+            UnityEditor.EditorApplication.isPlaying = false;
+        }
+    }
+
     void Start()
     {
         if (mode == 1)
@@ -193,6 +211,7 @@ public class CaptionController : MonoBehaviour
         {
             case 0:
                 modeStr = MODE_ACTION;
+                quitTimer.StartTimer(totalTime);
                 break;
 
             case 1:
@@ -201,6 +220,7 @@ public class CaptionController : MonoBehaviour
 
             case 2:
                 modeStr = MODE_FREEPLAY;
+                quitTimer.StartTimer(totalTime);
                 break;
         }
 
@@ -212,6 +232,8 @@ public class CaptionController : MonoBehaviour
         PrepareForAction(actionSequence.get().name);
 
         WriteData(filePathOutput, "Start " + modeStr + " " + GetCurrentUnixTimestampMillis().ToString());
+        quitTimer.SetOnTimerDoneListener(new QuitTimerListener(this));
+
     }
 
     // Update is called once per frame
@@ -224,6 +246,8 @@ public class CaptionController : MonoBehaviour
         simulateActionTimer.UpdateTimer();
         simulateWaitingTimer.UpdateTimer();
         simulateErrorTimer.UpdateTimer();
+
+        quitTimer.UpdateTimer();
 
         if (!actionSequence.isFinished())
             UpdateMessage();
@@ -478,8 +502,8 @@ public class CaptionController : MonoBehaviour
             currentEntry.messageTimestamp = GetCurrentUnixTimestampMillis();
         }
 
-        if (timerTriggerRelease)
-            message += "..." + (Math.Round(timeLeftRelease)).ToString();
+        //if (timerTriggerRelease)
+        //    message += "..." + (Math.Round(timeLeftRelease)).ToString();
 
         if (timerTriggerWaiting)
         {
